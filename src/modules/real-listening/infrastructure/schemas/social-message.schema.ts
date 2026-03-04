@@ -94,8 +94,8 @@ export class SocialMessage {
 
 export const SocialMessageSchema = SchemaFactory.createForClass(SocialMessage);
 
-SocialMessageSchema.index({ publishedAtUnix: -1 });
-SocialMessageSchema.index({ publishedAtUnix: 1, account_ids: 1 });
-SocialMessageSchema.index({ publishedAtUnix: 1, keywords: 1 });
-SocialMessageSchema.index({ publishedAtUnix: -1, account_ids: 1 });
-SocialMessageSchema.index({ publishedAtUnix: -1, keywords: 1 });
+// SocialMessageSchema.index({ publishedAtUnix: -1 });
+// SocialMessageSchema.index({ publishedAtUnix: 1, account_ids: 1 });
+// SocialMessageSchema.index({ publishedAtUnix: 1, keywords: 1 });
+// SocialMessageSchema.index({ publishedAtUnix: -1, account_ids: 1 });
+// SocialMessageSchema.index({ publishedAtUnix: -1, keywords: 1 });

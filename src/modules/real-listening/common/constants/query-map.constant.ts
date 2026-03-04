@@ -76,7 +76,6 @@ export const LANGUAGE_SEARCH_FIELDS = [
 ];
 
 export const SIMPLE_IN_FIELDS = [
-  'tags',
   'sentiments',
   'visibility',
   'statusMessage',

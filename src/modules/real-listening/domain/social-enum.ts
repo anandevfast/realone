@@ -4,7 +4,7 @@ export enum Sentiment {
   NEUTRAL = 'neutral',
 }
 
-export enum Source {
+export enum ResultBy {
   Keyword = 'keyword',
   Monitor = 'monitor',
   Image = 'image',
@@ -69,6 +69,14 @@ export enum PostFormat {
 export enum TrackingPost {
   Active = 'activeTracking',
   Stopped = 'stoppedTracking',
+}
+
+export enum AdvanceSearchOperator {
+  EQ = '=',
+  GT = '>',
+  GTE = '>=',
+  LT = '<',
+  LTE = '<=',
 }
 
 export enum Language {

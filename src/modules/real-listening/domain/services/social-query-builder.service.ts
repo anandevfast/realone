@@ -11,6 +11,8 @@ dayjs.tz.setDefault('Asia/Bangkok');
 import {
   SORT_FIELD_MAP,
   SIMPLE_IN_FIELDS,
+  LANGUAGE_REGEX_MAP,
+  LANGUAGE_SEARCH_FIELDS,
 } from '../../common/constants/query-map.constant';
 import {
   expandChannels,
@@ -44,6 +46,9 @@ export class SocialQueryBuilderService {
     // สมมติฐาน: เช็ค Index จาก DB
     const dbIndexes: any[] = [];
     const compoundReady = isCompoundMigrationReady(dbIndexes);
+
+    const escapeRegExp = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     /* ===============================
      * DATE RANGE (🔥 เปลี่ยนมาใช้ dayjs)
@@ -81,6 +86,15 @@ export class SocialQueryBuilderService {
      * =============================== */
     if (input.channel?.length) {
       result.match.channel = { $in: expandChannels(input.channel) };
+    }
+
+    /* ===============================
+     * CODE
+     * =============================== */
+    if (Array.isArray((input as any).code) && (input as any).code.length) {
+      result.match.code = {
+        $regex: (input as any).code.join('|'),
+      };
     }
 
     /* ===============================
@@ -143,13 +157,451 @@ export class SocialQueryBuilderService {
     }
 
     /* ===============================
+     * SENTIMENT
+     * =============================== */
+    if (Array.isArray((input as any).sentiment) && (input as any).sentiment.length) {
+      result.match['content.sentiment'] = {
+        $in: (input as any).sentiment,
+      };
+    }
+
+    /* ===============================
+     * SENT TO ALERT (filterBy)
+     * =============================== */
+    if (Array.isArray((input as any).filterBy) && (input as any).filterBy.length) {
+      result.match['sendTo.alert'] = {
+        $in: (input as any).filterBy,
+      };
+    }
+
+    /* ===============================
+     * POST FORMAT
+     * =============================== */
+    if (
+      Array.isArray((input as any).postFormat) &&
+      (input as any).postFormat.length
+    ) {
+      const postFormat = [...(input as any).postFormat];
+      if (_.isEqual(postFormat, ['text'])) {
+        result.match.postFormat = postFormat;
+      } else {
+        const isImage = postFormat.some((f: string) => f === 'image');
+        if (isImage && !postFormat.includes('album')) {
+          postFormat.push('album');
+        }
+        result.match.postFormat = { $in: postFormat };
+      }
+    }
+
+    /* ===============================
+     * TRACKING POST
+     * =============================== */
+    if (
+      Array.isArray((input as any).trackingPost) &&
+      (input as any).trackingPost.length
+    ) {
+      const trackingPost = (input as any).trackingPost;
+      const isActiveTracking = trackingPost.some(
+        (f: string) => f === 'activeTracking',
+      );
+      const nowIso = dayjs().toISOString();
+      result.match.trackingPost = isActiveTracking
+        ? { $gt: nowIso }
+        : { $lt: nowIso };
+    }
+
+    /* ===============================
+     * DETECTED BY (AI Detect)
+     * =============================== */
+    if (
+      Array.isArray((input as any).detectedBy) &&
+      (input as any).detectedBy.length
+    ) {
+      const detects = [{ ai_detect: { $in: (input as any).detectedBy } }];
+      if (Array.isArray(result.match.$and) && result.match.$and.length) {
+        result.match.$and.push({ $or: detects });
+      } else {
+        result.match.$and = [{ $or: detects }];
+      }
+    }
+
+    /* ===============================
+     * LANGUAGE FILTER
+     * =============================== */
+    if (
+      Array.isArray((input as any).language) &&
+      (input as any).language.length
+    ) {
+      const regexParts = (input as any).language
+        .map((lang: string) => LANGUAGE_REGEX_MAP[String(lang).toLowerCase()])
+        .filter(Boolean);
+
+      if (regexParts.length) {
+        const langRegex = regexParts.join('|');
+        const langOr = LANGUAGE_SEARCH_FIELDS.map((field) => ({
+          [field]: { $regex: langRegex, $options: 'i' },
+        }));
+        result.match.$and = [...(result.match.$and || []), { $or: langOr }];
+      }
+    }
+
+    /* ===============================
+     * TAG INCLUDE / EXCLUDE
+     * =============================== */
+    if (Array.isArray((input as any).tags) && (input as any).tags.length) {
+      result.match.tags = { $in: (input as any).tags };
+    }
+
+    if (Array.isArray((input as any).ex_tags) && (input as any).ex_tags.length) {
+      result.match.tags = {
+        ...(result.match.tags || {}),
+        $nin: (input as any).ex_tags,
+      };
+    }
+
+    /* ===============================
+     * ARR ID
+     * =============================== */
+    if (Array.isArray((input as any).arr_id) && (input as any).arr_id.length) {
+      result.match._id = {
+        $in: (input as any).arr_id.map(
+          (id: string) => new Types.ObjectId(id),
+        ),
+      };
+    }
+
+    /* ===============================
      * RAW CONTENT (Always)
      * =============================== */
     result.match['rawContent.save_import'] = { $nin: [false] };
 
-    // หมายเหตุ: ส่วนของ Language Regex และ Hint คุณสามารถก็อปปี้ Logic จากของเดิมมาใส่ต่อท้ายตรงนี้ได้เลยครับ
+    /* ===============================
+     * SEARCH (followers, domain, text)
+     * =============================== */
+    if (Array.isArray((input as any).search) && (input as any).search.length) {
+      let searchArr: string[] = [...(input as any).search];
+      const searchAndConditions: any[] = [];
+
+      // Followers
+      const followers = _.remove(searchArr, (item) =>
+        String(item).startsWith('followers:'),
+      );
+      if (followers.length > 0) {
+        const targetFollower = parseInt(
+          followers[0].replace('followers:', ''),
+          10,
+        );
+        if (!Number.isNaN(targetFollower)) {
+          searchAndConditions.push({
+            $or: [
+              { 'content.user.followers_count': { $gte: targetFollower } },
+              { 'content.from.followers_count': { $gte: targetFollower } },
+              { 'content.user.edge_followed_by': { $gte: targetFollower } },
+              {
+                $expr: {
+                  $gt: [
+                    {
+                      $toInt:
+                        '$content.statisticsChannel.subscriberCount',
+                    },
+                    targetFollower,
+                  ],
+                },
+              },
+              { 'content.follower': { $gte: targetFollower } },
+            ],
+          });
+        }
+      }
+
+      // Domains
+      const domains = _.remove(searchArr, (item) =>
+        String(item).startsWith('domain:'),
+      );
+      if (domains.length > 0) {
+        searchAndConditions.push({
+          $or: domains.map((d) => ({
+            domain: {
+              $regex: escapeRegExp(d.replace('domain:', '')),
+              $options: 'i',
+            },
+          })),
+        });
+      }
+
+      // Text search (AND, AND NOT, OR)
+      if (searchArr.length > 0) {
+        const AND = ' AND ';
+        const AND_NOT = ' AND NOT ';
+        const andSearch: any[] = [];
+        const orSearch: string[] = [];
+
+        searchArr.forEach((element) => {
+          if (element.includes(AND) && !element.includes(AND_NOT)) {
+            const arrText = element
+              .split(AND)
+              .map((t) => escapeRegExp(t.trim()));
+            const fieldOrs = LANGUAGE_SEARCH_FIELDS.map((key) => ({
+              $and: arrText.map((t) => ({
+                [key]: { $regex: t, $options: 'i' },
+              })),
+            }));
+            andSearch.push({ $or: fieldOrs });
+          } else if (element.includes(AND_NOT)) {
+            const arrText = element
+              .split(AND_NOT)
+              .map((t) => escapeRegExp(t.trim()));
+            const fieldOrs = LANGUAGE_SEARCH_FIELDS.map((key) => ({
+              $and: arrText.map((t, i) => {
+                if (i === 1) {
+                  return {
+                    [key]: {
+                      $not: { $regex: t, $options: 'i' },
+                    },
+                  };
+                }
+                return { [key]: { $regex: t, $options: 'i' } };
+              }),
+            }));
+            andSearch.push({ $or: fieldOrs });
+          } else {
+            orSearch.push(escapeRegExp(element.trim()));
+          }
+        });
+
+        const textSearchOrs: any[] = [];
+        if (orSearch.length > 0) {
+          const joinedOr = orSearch.join('|');
+          LANGUAGE_SEARCH_FIELDS.forEach((key) => {
+            textSearchOrs.push({
+              [key]: { $regex: joinedOr, $options: 'i' },
+            });
+          });
+        }
+
+        if (textSearchOrs.length > 0 || andSearch.length > 0) {
+          const finalSearchOr = [...textSearchOrs, ...andSearch];
+          searchAndConditions.push({ $or: finalSearchOr });
+        }
+      }
+
+      if (searchAndConditions.length > 0) {
+        result.match.$and = [
+          ...(result.match.$and || []),
+          ...searchAndConditions,
+        ];
+      }
+    }
+
+    /* ===============================
+     * ADVANCE SEARCH
+     * =============================== */
+    if (!_.isEmpty((input as any).advanceSearch)) {
+      const advanceSearchMatch = genAdvanceSearchMatch(
+        (input as any).advanceSearch,
+      );
+
+      if (!_.isEmpty(advanceSearchMatch.andList)) {
+        result.match.$and = [
+          ...(result.match.$and || []),
+          ...advanceSearchMatch.andList,
+        ];
+      }
+
+      if (!_.isEmpty(advanceSearchMatch.advanceSearchFields)) {
+        (result as any).advanceSearchFields =
+          advanceSearchMatch.advanceSearchFields;
+      }
+
+      if (!_.isEmpty(advanceSearchMatch.advanceSearchWord)) {
+        result.match.advanceSearchWord = advanceSearchMatch.advanceSearchWord;
+      }
+
+      if (!_.isEmpty(advanceSearchMatch.advanceSearchAuthor)) {
+        result.match.advanceSearchAuthor =
+          advanceSearchMatch.advanceSearchAuthor;
+      }
+    }
 
     return result;
   }
+}
+
+function genAdvanceSearchMatch(search: any) {
+  const wordFields = [
+    'content.message',
+    'content.full_text',
+    'content.content',
+    'content.text',
+    'content.title',
+    'content.caption',
+    'content.topic',
+    'content.snippet.title',
+    'content.snippet.description',
+    'content.gcp.ocr',
+    'center_data.ai.ocr',
+    'ocr_text',
+    'object_text',
+  ];
+
+  const authorFields = [
+    'content.user.username',
+    'content.pageName',
+    'content.gcp.object.name',
+    'center_data.profile.name',
+    'center_data.profile.username',
+    'content.from.name',
+    'content.username',
+    'content.user.name',
+    'content.author',
+    'content.snippet.channelTitle',
+  ];
+
+  const operatorMap: Record<string, string> = {
+    '=': '$eq',
+    '>': '$gt',
+    '>=': '$gte',
+    '<': '$lt',
+    '<=': '$lte',
+  };
+
+  const escapeRegex = (str: string) =>
+    str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  let andList: any[] = [];
+  const advanceSearchFields: any = { $addFields: {} };
+  let advanceSearchWord: any = {};
+  let advanceSearchAuthor: any = {};
+
+  if (search.word) {
+    const hasInclude =
+      Array.isArray(search.word.include) && search.word.include.length > 0;
+    const hasExclude =
+      Array.isArray(search.word.exclude) && search.word.exclude.length > 0;
+
+    if (hasInclude || hasExclude) {
+      const concatWord = {
+        $concat: wordFields.flatMap((field) => [
+          {
+            $ifNull: [
+              {
+                $cond: [
+                  { $eq: [{ $type: `$${field}` }, 'string'] },
+                  `$${field}`,
+                  '',
+                ],
+              },
+              '',
+            ],
+          },
+          ' ',
+        ]),
+      };
+      advanceSearchFields.$addFields.advanceSearchWord = concatWord;
+
+      const include: string[] = search.word.include || [];
+      const exclude: string[] = search.word.exclude || [];
+
+      const regexParts: string[] = [];
+
+      if (exclude.length > 0) {
+        regexParts.push(
+          `^${exclude
+            .map((w) => `(?![\\s\\S]*${escapeRegex(w.trim())})`)
+            .join('')}`,
+        );
+      }
+
+      if (include.length > 0) {
+        regexParts.push(
+          `.*(${include
+            .map((w) => escapeRegex(w.trim()))
+            .join('|')})`,
+        );
+      }
+
+      advanceSearchWord = { $regex: regexParts.join(''), $options: 'i' };
+    }
+  }
+
+  if (search.author) {
+    const hasInclude =
+      Array.isArray(search.author.include) && search.author.include.length > 0;
+    const hasExclude =
+      Array.isArray(search.author.exclude) && search.author.exclude.length > 0;
+
+    if (hasInclude || hasExclude) {
+      const concatAuthor = {
+        $concat: authorFields.flatMap((field) => [
+          {
+            $ifNull: [
+              {
+                $cond: [
+                  { $eq: [{ $type: `$${field}` }, 'string'] },
+                  `$${field}`,
+                  '',
+                ],
+              },
+              '',
+            ],
+          },
+          ' ',
+        ]),
+      };
+      advanceSearchFields.$addFields.advanceSearchAuthor = concatAuthor;
+
+      const include: string[] = search.author.include || [];
+      const exclude: string[] = search.author.exclude || [];
+
+      const regexParts: string[] = [];
+
+      if (exclude.length > 0) {
+        regexParts.push(
+          `^${exclude
+            .map((w) => `(?![\\s\\S]*${escapeRegex(w.trim())})`)
+            .join('')}`,
+        );
+      }
+
+      if (include.length > 0) {
+        regexParts.push(
+          `.*(${include
+            .map((w) => escapeRegex(w.trim()))
+            .join('|')})`,
+        );
+      }
+
+      advanceSearchAuthor = { $regex: regexParts.join(''), $options: 'i' };
+    }
+  }
+
+  if (Array.isArray(search.is) && search.is.length > 0) {
+    andList.push({ channel: { $regex: search.is.join('|') } });
+  }
+
+  if (search.engagement && search.engagement.operator && search.engagement.value) {
+    const op = operatorMap[search.engagement.operator];
+    if (op) {
+      andList.push({
+        totalEngagement: { [op]: search.engagement.value },
+      });
+    }
+  }
+
+  if (search.views && search.views.operator && search.views.value) {
+    const op = operatorMap[search.views.operator];
+    if (op) {
+      andList.push({
+        totalView: { [op]: search.views.value },
+      });
+    }
+  }
+
+  return {
+    andList,
+    advanceSearchFields,
+    advanceSearchWord,
+    advanceSearchAuthor,
+  };
 }
 

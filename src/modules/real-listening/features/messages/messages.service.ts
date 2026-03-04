@@ -8,7 +8,6 @@ export class MessagesService {
 
   async findMessagesList(dto: MessageFilterDTO) {
     try {
-      // Inอนาคตสามารถระบุ email หรือ context อื่น ๆ เพิ่มได้
       return await this.messagesRepository.findByFilter(dto);
     } catch (error: any) {
       throw new BadRequestException([error?.message ?? String(error)]);
