@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { InjectModel } from '@nestjs/mongoose';
+import type { Model } from 'mongoose';
+import type { Cache } from 'cache-manager';
 import { Types } from 'mongoose';
 import _ from 'lodash';
 import dayjs from 'dayjs';
@@ -18,9 +22,13 @@ import {
   expandChannels,
   buildMonitorOr,
   isCompoundMigrationReady,
+  buildMongoHint,
+  type MongoIndexSpec,
 } from '../../common/utils/query-builder.util';
 import { FilterQueryDTO } from '../filter-query.dto';
 import { FavoriteMessage } from '../social-enum';
+import type { SocialMessageDocument } from '../../infrastructure/schemas/social-message.schema';
+import { SocialMessage } from '../../infrastructure/schemas/social-message.schema';
 
 export interface BuiltSocialQuery {
   match: Record<string, any>;
@@ -28,10 +36,41 @@ export interface BuiltSocialQuery {
   hint?: Record<string, any>;
   skip?: number;
   limit?: number;
+  advanceSearchFields?: Record<string, any>;
 }
+
+const INDEXES_CACHE_KEY = 'real-listening:indexes:social_messages';
+const INDEXES_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 @Injectable()
 export class SocialQueryBuilderService {
+  constructor(
+    @InjectModel(SocialMessage.name)
+    private readonly messageModel: Model<SocialMessageDocument>,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
+
+  /**
+   * Get MongoDB indexes for the collection (cached).
+   * Uses Nest CacheModule; equivalent to getIndexesMongo(collectionName) with Redis.
+   */
+  async getIndexes(collectionName: string = 'social_messages'): Promise<MongoIndexSpec[]> {
+    try {
+      const cached = await this.cache.get<MongoIndexSpec[]>(INDEXES_CACHE_KEY);
+      if (cached && Array.isArray(cached)) {
+        return cached;
+      }
+      const coll = this.messageModel.db.collection(collectionName);
+      const indexes = (await coll.indexes()) as MongoIndexSpec[];
+      await this.cache.set(INDEXES_CACHE_KEY, indexes, INDEXES_CACHE_TTL_MS);
+      return indexes;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[getIndexes] error:', err);
+      return [];
+    }
+  }
+
   async buildQuery(
     dto: Partial<FilterQueryDTO>,
     email?: string,
@@ -43,8 +82,7 @@ export class SocialQueryBuilderService {
       hint: {},
     };
 
-    // สมมติฐาน: เช็ค Index จาก DB
-    const dbIndexes: any[] = [];
+    const dbIndexes = await this.getIndexes('social_messages');
     const compoundReady = isCompoundMigrationReady(dbIndexes);
 
     const escapeRegExp = (value: string) =>
@@ -138,6 +176,7 @@ export class SocialQueryBuilderService {
 
       // Mock data จำลองตอนต่อ DB
       const userFavData: any = { favorites: [] };
+      //TODO: get user favorites from database
 
       if (!_.isEmpty(userFavData)) {
         const favIds = userFavData.favorites.map(
@@ -422,6 +461,16 @@ export class SocialQueryBuilderService {
           advanceSearchMatch.advanceSearchAuthor;
       }
     }
+
+    result.hint = buildMongoHint(
+      {
+        sortBy: input.sortBy,
+        monitor: (input as any).monitor,
+        keywords: input.keywords,
+      },
+      dbIndexes,
+      true,
+    );
 
     return result;
   }

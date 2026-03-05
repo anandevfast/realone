@@ -43,10 +43,63 @@ export function buildMonitorOr(
   return orList;
 }
 
-// 3. เช็ค Index (ใช้ pure array check)
-export function isCompoundMigrationReady(indexes: any[]): boolean {
-  // ยก Logic hasExactIndex ของคุณมาใส่ตรงนี้ได้เลย
-  // ... (เพื่อความกระชับ ขอละ Logic เดิมของคุณไว้นะครับ)
-  console.log('indexes', indexes);
-  return true; // Mock ไว้ก่อน
+/** Index shape from MongoDB listIndexes: { key: { field: 1 | -1 | string }, ... } */
+export type MongoIndexSpec = { key: Record<string, number | string> };
+
+export function hasExactIndex(
+  indexes: MongoIndexSpec[],
+  keyPattern: Record<string, number>,
+): boolean {
+  const keys = Object.keys(keyPattern);
+  return indexes.some((idx) => {
+    if (keys.length !== Object.keys(idx.key).length) return false;
+    return keys.every((k) => idx.key[k] === keyPattern[k]);
+  });
+}
+
+const REQUIRED_INDEXES: Record<string, number>[] = [
+  { publishedAtUnix: 1 },
+  { publishedAtUnix: -1 },
+  { publishedAtUnix: -1, account_ids: 1 },
+  { publishedAtUnix: 1, account_ids: 1 },
+  { publishedAtUnix: -1, keywords: 1 },
+  { publishedAtUnix: 1, keywords: 1 },
+];
+
+export function isCompoundMigrationReady(indexes: MongoIndexSpec[]): boolean {
+  return REQUIRED_INDEXES.every((pattern) => hasExactIndex(indexes, pattern));
+}
+
+/**
+ * Build MongoDB hint for the query based on sort/monitor/keywords and available indexes.
+ * Input shape: { sortBy?, monitor?, keywords? } (e.g. from FilterQueryDTO).
+ */
+export function buildMongoHint(
+  input: { sortBy?: string; monitor?: Record<string, string[]>; keywords?: string[] },
+  mongoIndexes: MongoIndexSpec[],
+  useSort = true,
+): Record<string, number> {
+  const sortBy = input.sortBy ?? 'publisheddate-desc';
+  const sortDesc = sortBy === 'publisheddate-desc';
+  const sortDir = sortDesc && useSort ? -1 : 1;
+
+  const hasMonitor = Object.values(input.monitor ?? {}).some(
+    (arr) => Array.isArray(arr) && arr.length > 0,
+  );
+  const hasKeyword =
+    Array.isArray(input.keywords) && input.keywords.length > 0;
+
+  const compoundReady = isCompoundMigrationReady(mongoIndexes);
+
+  if (!compoundReady) {
+    return { publisheddate: 1 };
+  }
+
+  if (hasKeyword) {
+    return { publishedAtUnix: sortDir, keywords: 1 };
+  }
+  if (hasMonitor) {
+    return { publishedAtUnix: sortDir, account_ids: 1 };
+  }
+  return { publishedAtUnix: sortDir };
 }

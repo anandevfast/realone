@@ -670,6 +670,29 @@ function genAdvanceSearchMatch(search) {
   return { andList, advanceSearchFields, advanceSearchWord, advanceSearchAuthor }
 }
 
+
+function hasExactIndex(indexes, keyPattern) {
+  return indexes.some((idx) => {
+    const keys = Object.keys(keyPattern)
+    if (keys.length !== Object.keys(idx.key).length) return false
+
+    return keys.every((k) => idx.key[k] === keyPattern[k])
+  })
+}
+
+function isCompoundMigrationReady(indexes) {
+  const REQUIRED_INDEXES = [
+    { publishedAtUnix: 1 },
+    { publishedAtUnix: -1 },
+    { publishedAtUnix: -1, account_ids: 1 },
+    { publishedAtUnix: 1, account_ids: 1 },
+    { publishedAtUnix: -1, keywords: 1 },
+    { publishedAtUnix: 1, keywords: 1 },
+  ]
+
+  return REQUIRED_INDEXES.every((pattern) => hasExactIndex(indexes, pattern))
+}
+
 function buildMongoHint(input, mongoIndexes, useSort) {
   const sortBy = input.find?.sortBy || 'publisheddate-desc'
   const sortDesc = sortBy === 'publisheddate-desc'

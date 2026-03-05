@@ -1,10 +1,10 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { MessageFilterDTO } from './dto/message-filter.dto';
 import { MessagesService } from './messages.service';
 import { RateLimit } from 'src/core/rate-limit/rate-limit.decorator';
-import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Real Listening - Message')
+@ApiTags('Real Listening - Messages')
 @Controller('messages')
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
@@ -14,5 +14,12 @@ export class MessagesController {
   @HttpCode(HttpStatus.OK)
   async findMessageList(@Body() dto: MessageFilterDTO) {
     return await this.messagesService.findMessagesList(dto);
+  }
+
+  @Post('count')
+  @RateLimit({ limit: 30, window: 60 })
+  @HttpCode(HttpStatus.OK)
+  async countMessages(@Body() dto: MessageFilterDTO) {
+    return await this.messagesService.countMessages(dto);
   }
 }

@@ -79,6 +79,7 @@ export abstract class BaseRepository<TDoc, TEntity = TDoc> {
     let agg = this.model.aggregate<R>(pipeline);
 
     if (opts.hint) agg = agg.hint(opts.hint);
+    if (opts.maxTimeMS) agg = agg.option({ maxTimeMS: opts.maxTimeMS });
     if (opts.allowDiskUse) agg = agg.allowDiskUse(true);
     else agg = agg.read('secondaryPreferred');
 
