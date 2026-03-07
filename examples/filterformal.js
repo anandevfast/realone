@@ -7,8 +7,7 @@ const mongoose = require('mongoose')
 /* ===============================
  * CHANNEL GROUP MAPPING
  * =============================== */
-//
-export const CHANNEL_GROUPS = {
+const CHANNEL_GROUPS = {
   facebook: ['facebook-post', 'facebook-comment', 'facebook-subcomment'],
   facebookgroup: ['facebookgroup-post', 'facebookgroup-comment', 'facebookgroup-subcomment'],
   twitter: ['twitter-tweet', 'twitter-reply', 'twitter-retweet', 'twitter-quote'],
@@ -80,7 +79,7 @@ const SEARCH_TEXT_FIELDS = [
   'center_data.message',
 ]
 
-export const DATE_FILTER_GROUP = {
+const DATE_FILTER_GROUP = {
   $dateToString: {
     format: '%Y-%m-%d',
     date: { $toDate: '$publishedAtUnix' },
@@ -91,7 +90,6 @@ export const DATE_FILTER_GROUP = {
 const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
-
 
 /* ===============================
  * MAIN
@@ -153,6 +151,27 @@ async function filterFormalV2(findOrWrapper = {}, useSort = false) {
   delete input.code
 
   /* ===============================
+   * Favorite
+   * =============================== */
+  if (Array.isArray(input.favoriteMessage) && input.favoriteMessage.length < 2) {
+    const favorite = input.favoriteMessage.some((f) => f === 'favorite')
+
+    const data = await mongodb.findOne('socialUserFavorites', 'favoriteUserSchema', { username: email })
+
+    if (!_.isEmpty(data)) {
+      if (favorite) {
+        result.match._id = { $in: data.favorites.map((o) => mongoose.Types.ObjectId(o.id)) }
+        delete input.keywords
+        delete input.tags
+        delete input.ex_tags
+      } else {
+        result.match._id = { $nin: data.favorites.map((o) => mongoose.Types.ObjectId(o.id)) }
+      }
+    }
+  }
+  delete input.favoriteMessage
+
+  /* ===============================
    * CHANNEL (non-monitor)
    * =============================== */
   if (Array.isArray(input.channel) && input.channel.length) {
@@ -205,29 +224,6 @@ async function filterFormalV2(findOrWrapper = {}, useSort = false) {
    * RAW CONTENT (always)
    * =============================== */
   result.match['rawContent.save_import'] = { $nin: [false] }
-
-  /* ===============================
-   * Favorite
-   * =============================== */
-  if (Array.isArray(input.favoriteMessage) && input.favoriteMessage.length) {
-    const favorite = input.favoriteMessage.some((f) => f === 'favorite')
-    // ... logic data จำลอง ...
-
-    const data = await mongodb.findOne('socialUserFavorites', 'favoriteUserSchema', { username: email })
-
-    if (!_.isEmpty(data)) {
-      result.match._id = favorite
-        ? { $in: data.favorites.map((o) => mongoose.Types.ObjectId(o.id)) }
-        : { $nin: data.favorites.map((o) => mongoose.Types.ObjectId(o.id)) }
-    }
-  }
-
-  if (result.match._id) {
-    result.match = {
-      _id: result.match._id,
-      'rawContent.save_import': { ...result.match['rawContent.save_import'] },
-    }
-  }
 
   /* ===============================
    * 🔥 SEARCH (Optimized from V1) 🔥
@@ -430,12 +426,28 @@ async function filterFormalV2(findOrWrapper = {}, useSort = false) {
   }
 
   /* ===============================
+   * Status Message
+   * =============================== */
+  if (Array.isArray(input.statusMessage) && input.statusMessage.length < 2) {
+    const isRead = input.statusMessage.some((f) => f == 'read')
+    result.match.statusMessage = isRead ? { $in: ['read'] } : { $nin: ['read'] }
+    delete input.statusMessage
+  }
+
+  /* ===============================
+   * Visibility
+   * =============================== */
+  if (Array.isArray(input.visibility) && input.visibility.length < 2) {
+    const isShow = input.visibility.some((f) => f == 'hide')
+    result.match.visibility = isShow ? { $in: ['hide'] } : { $nin: ['hide'] }
+    delete input.visibility
+  }
+
+  /* ===============================
    * SIMPLE $in FIELDS
    * =============================== */
   const simpleInFields = [
     'sentiments',
-    'visibility',
-    'statusMessage',
     'source',
     'provinceName',
     'speakerType',
@@ -460,8 +472,8 @@ async function filterFormalV2(findOrWrapper = {}, useSort = false) {
     }
     delete input[f]
   }
-
-  const hint = result.match._id ? { _id: 1 } : buildMongoHint(findOrWrapper, mongoIndexes, useSort)
+  const _idIn = result.match._id && result.match._id?.$in ? true : false
+  const hint = _idIn ? { _id: 1 } : buildMongoHint(findOrWrapper, mongoIndexes, useSort)
 
   // console.log(`hint`, hint)
   if (hint) {
@@ -670,29 +682,6 @@ function genAdvanceSearchMatch(search) {
   return { andList, advanceSearchFields, advanceSearchWord, advanceSearchAuthor }
 }
 
-
-function hasExactIndex(indexes, keyPattern) {
-  return indexes.some((idx) => {
-    const keys = Object.keys(keyPattern)
-    if (keys.length !== Object.keys(idx.key).length) return false
-
-    return keys.every((k) => idx.key[k] === keyPattern[k])
-  })
-}
-
-function isCompoundMigrationReady(indexes) {
-  const REQUIRED_INDEXES = [
-    { publishedAtUnix: 1 },
-    { publishedAtUnix: -1 },
-    { publishedAtUnix: -1, account_ids: 1 },
-    { publishedAtUnix: 1, account_ids: 1 },
-    { publishedAtUnix: -1, keywords: 1 },
-    { publishedAtUnix: 1, keywords: 1 },
-  ]
-
-  return REQUIRED_INDEXES.every((pattern) => hasExactIndex(indexes, pattern))
-}
-
 function buildMongoHint(input, mongoIndexes, useSort) {
   const sortBy = input.find?.sortBy || 'publisheddate-desc'
   const sortDesc = sortBy === 'publisheddate-desc'
@@ -726,8 +715,10 @@ function buildMongoHint(input, mongoIndexes, useSort) {
 
 module.exports = {
   filterFormalV2,
+  CHANNEL_GROUPS,
   expandChannels,
   buildMonitorOr,
+  DATE_FILTER_GROUP,
   genAdvanceSearchMatch,
   buildMongoHint,
 }

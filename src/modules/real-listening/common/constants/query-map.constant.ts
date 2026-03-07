@@ -58,6 +58,7 @@ export const LANGUAGE_SEARCH_FIELDS = [
   'content.message',
   'content.full_text',
   'content.content',
+  'content.pageName',
   'content.text',
   'content.title',
   'content.caption',
@@ -77,8 +78,6 @@ export const LANGUAGE_SEARCH_FIELDS = [
 
 export const SIMPLE_IN_FIELDS = [
   'sentiments',
-  'visibility',
-  'statusMessage',
   'source',
   'provinceName',
   'speakerType',

@@ -120,13 +120,6 @@ export class SocialQueryBuilderService {
     }
 
     /* ===============================
-     * CHANNEL
-     * =============================== */
-    if (input.channel?.length) {
-      result.match.channel = { $in: expandChannels(input.channel) };
-    }
-
-    /* ===============================
      * CODE
      * =============================== */
     if (Array.isArray((input as any).code) && (input as any).code.length) {
@@ -136,53 +129,93 @@ export class SocialQueryBuilderService {
     }
 
     /* ===============================
-     * KEYWORDS & MONITOR
+     * FAVORITE (run early; when favorite, skip keywords/tags/ex_tags)
      * =============================== */
-    if (input.keywords?.length) {
-      const noKeyword = input.keywords.includes('No Keyword');
-      const keywordClause = noKeyword ? { $in: [] } : { $in: input.keywords };
-
-      if ((input as any).monitor && Object.keys((input as any).monitor).length) {
-        const condition = (input as any).condition || 'or';
-        let monitorOperator = '$in';
-        if (condition === 'keywordAndNotMonitor') {
-          monitorOperator = '$nin';
-        }
-
-        const monitorOrList = buildMonitorOr(
-          (input as any).monitor,
-          monitorOperator,
-        );
-
-        if (monitorOrList.length) {
-          const monitorClause = { $or: monitorOrList };
-
-          if (condition === 'and' || condition === 'keywordAndNotMonitor') {
-            result.match.$and = [{ keywords: keywordClause }, monitorClause];
-          } else if (condition === 'or') {
-            result.match.$or = [{ keywords: keywordClause }, monitorClause];
-          }
-        }
-      } else {
-        result.match.keywords = keywordClause;
-      }
-    }
-
-    /* ===============================
-     * FAVORITE
-     * =============================== */
-    if (input.favoriteMessage?.length && email) {
+    if (
+      Array.isArray(input.favoriteMessage) &&
+      input.favoriteMessage.length < 2 &&
+      email
+    ) {
       const isFavorite = input.favoriteMessage.includes(FavoriteMessage.Favorite);
 
-      // Mock data จำลองตอนต่อ DB
+      // TODO: get user favorites from database (must return { favorites: [{ id: string }, ...] })
       const userFavData: any = { favorites: [] };
-      //TODO: get user favorites from database
 
-      if (!_.isEmpty(userFavData)) {
+      const hasFavData =
+        !_.isEmpty(userFavData) &&
+        Array.isArray(userFavData.favorites) &&
+        userFavData.favorites.length > 0;
+
+      if (hasFavData) {
         const favIds = userFavData.favorites.map(
           (o: any) => new Types.ObjectId(o.id),
         );
         result.match._id = isFavorite ? { $in: favIds } : { $nin: favIds };
+        if (isFavorite) {
+          delete (input as any).keywords;
+          delete (input as any).tags;
+          delete (input as any).ex_tags;
+        }
+      }
+    }
+
+    /* ===============================
+     * CHANNEL
+     * =============================== */
+    if (input.channel?.length) {
+      result.match.channel = { $in: expandChannels(input.channel) };
+    }
+
+    /* ===============================
+     * KEYWORDS (temp) + MONITOR COMBINATION
+     * =============================== */
+    let keywordClause: { $in: string[] } | null = null;
+    if (Array.isArray(input.keywords) && input.keywords.length) {
+      const noKeyword = input.keywords.includes('No Keyword');
+      keywordClause = noKeyword ? { $in: [] } : { $in: input.keywords };
+    }
+
+    if ((input as any).monitor && Object.keys((input as any).monitor).length) {
+      const condition = (input as any).condition || 'or';
+      const monitorOrList = buildMonitorOr((input as any).monitor, '$in');
+
+      if (monitorOrList.length) {
+        const keywordPart = keywordClause ? { keywords: keywordClause } : null;
+        if (condition === 'and') {
+          result.match.$and = [
+            ...(result.match.$and || []),
+            keywordPart,
+            { $or: monitorOrList },
+          ].filter(Boolean);
+        } else if (condition === 'keywordAndNotMonitor') {
+          result.match.$and = [
+            ...(result.match.$and || []),
+            keywordPart,
+            { $nor: monitorOrList },
+          ].filter(Boolean);
+        } else {
+          result.match.$or = [keywordPart, { $or: monitorOrList }].filter(
+            Boolean,
+          );
+        }
+      }
+    }
+
+    /* ===============================
+     * KEYWORD ONLY (no monitor)
+     * =============================== */
+    if (_.isEmpty((input as any).monitor) && keywordClause) {
+      const condition = (input as any).condition || 'or';
+      if (condition === 'and') {
+        result.match.$and = [
+          ...(result.match.$and || []),
+          { keywords: keywordClause },
+        ];
+      } else {
+        result.match.$or = [
+          ...(Array.isArray(result.match.$or) ? result.match.$or : []),
+          { keywords: keywordClause },
+        ];
       }
     }
 
@@ -191,7 +224,11 @@ export class SocialQueryBuilderService {
      * =============================== */
     for (const f of SIMPLE_IN_FIELDS) {
       if (Array.isArray((input as any)[f]) && (input as any)[f].length) {
-        result.match[f] = { $in: (input as any)[f] };
+        let values = (input as any)[f] as string[];
+        if (['speakerType', 'intent'].includes(f)) {
+          values = values.map((i) => (i === 'none' ? '' : i));
+        }
+        result.match[f] = { $in: values };
       }
     }
 
@@ -296,6 +333,36 @@ export class SocialQueryBuilderService {
         ...(result.match.tags || {}),
         $nin: (input as any).ex_tags,
       };
+    }
+
+    /* ===============================
+     * STATUS MESSAGE (length < 2)
+     * =============================== */
+    if (
+      Array.isArray((input as any).statusMessage) &&
+      (input as any).statusMessage.length < 2
+    ) {
+      const isRead = (input as any).statusMessage.some(
+        (f: string) => f === 'read',
+      );
+      result.match.statusMessage = isRead
+        ? { $in: ['read'] }
+        : { $nin: ['read'] };
+    }
+
+    /* ===============================
+     * VISIBILITY (length < 2)
+     * =============================== */
+    if (
+      Array.isArray((input as any).visibility) &&
+      (input as any).visibility.length < 2
+    ) {
+      const hasHide = (input as any).visibility.some(
+        (f: string) => f === 'hide',
+      );
+      result.match.visibility = hasHide
+        ? { $in: ['hide'] }
+        : { $nin: ['hide'] };
     }
 
     /* ===============================
@@ -462,15 +529,18 @@ export class SocialQueryBuilderService {
       }
     }
 
-    result.hint = buildMongoHint(
-      {
-        sortBy: input.sortBy,
-        monitor: (input as any).monitor,
-        keywords: input.keywords,
-      },
-      dbIndexes,
-      true,
-    );
+    const _idIn = result.match._id && (result.match._id as any).$in;
+    result.hint = _idIn
+      ? { _id: 1 }
+      : buildMongoHint(
+          {
+            sortBy: input.sortBy,
+            monitor: (input as any).monitor,
+            keywords: input.keywords,
+          },
+          dbIndexes,
+          true,
+        );
 
     return result;
   }

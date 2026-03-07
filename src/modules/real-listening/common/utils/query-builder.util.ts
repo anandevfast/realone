@@ -34,9 +34,10 @@ export function buildMonitorOr(
 ) {
   const orList = [];
   for (const [platform, accounts] of Object.entries(monitor)) {
-    if (!CHANNEL_GROUPS[platform] || !accounts?.length) continue;
+    const key = platform.toLowerCase();
+    if (!CHANNEL_GROUPS[key] || !accounts?.length) continue;
     orList.push({
-      channel: { $in: CHANNEL_GROUPS[platform] },
+      channel: { $in: CHANNEL_GROUPS[key] },
       account_ids: { [operator]: accounts.map(String) },
     });
   }
