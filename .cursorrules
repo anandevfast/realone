@@ -1,0 +1,1 @@
+- **POST Status Codes:** By default, explicitly set all `@Post()` endpoints to return 200 OK using `@HttpCode(HttpStatus.OK)`. Only use 201 if I explicitly state that the route creates a new resource.
