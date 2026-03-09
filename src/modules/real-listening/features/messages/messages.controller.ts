@@ -1,5 +1,13 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { MessageFilterDTO } from './dto/message-filter.dto';
 import { MessagesService } from './messages.service';
 import { RateLimit } from 'src/core/rate-limit/rate-limit.decorator';
@@ -12,7 +20,7 @@ export class MessagesController {
   @Post('query')
   @RateLimit({ limit: 15, window: 60 })
   @HttpCode(HttpStatus.OK)
-  async findMessageList(@Body() dto: MessageFilterDTO) {
+  async findMessageList(@Body() dto: MessageFilterDTO,) {
     return await this.messagesService.findMessagesList(dto);
   }
 

@@ -84,7 +84,6 @@ export class SocialQueryBuilderService {
 
     const dbIndexes = await this.getIndexes('social_messages');
     const compoundReady = isCompoundMigrationReady(dbIndexes);
-
     const escapeRegExp = (value: string) =>
       value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -541,7 +540,7 @@ export class SocialQueryBuilderService {
           dbIndexes,
           true,
         );
-
+    // console.log('result',JSON.stringify(result, null, 2));
     return result;
   }
 }

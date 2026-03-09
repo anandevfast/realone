@@ -18,6 +18,7 @@ import {
   buildEngagementStage,
   buildComparePeriod,
 } from '../../common/utils/aggregation.util';
+import { FilterQueryDTO } from '../../domain/filter-query.dto';
 
 export interface TimeSeriesResult {
   series: any[];
@@ -26,6 +27,9 @@ export interface TimeSeriesResult {
   startDate: Date;
   endDate: Date;
 }
+
+/** Max time for analytics aggregation (ms). Prevents request from hanging. */
+const AGGREGATE_MAX_TIME_MS = 120_000;
 
 @Injectable()
 export class AnalyticsRepository extends BaseRepository<SocialMessageDocument> {
@@ -38,13 +42,12 @@ export class AnalyticsRepository extends BaseRepository<SocialMessageDocument> {
   }
 
   async getSeriesData(
-    dto: AnalyticsFilterDTO,
+    dto: Partial<FilterQueryDTO>,
     overrideStart?: Date,
     overrideEnd?: Date,
   ): Promise<TimeSeriesResult> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
     const match = { ...built.match };
-
     const startDate = overrideStart ?? new Date(dto.startDate!);
     const endDate = overrideEnd ?? new Date(dto.endDate!);
 
@@ -67,7 +70,11 @@ export class AnalyticsRepository extends BaseRepository<SocialMessageDocument> {
       ? this.buildDailyPipeline(advanceStages, match, engagementStages)
       : this.buildHourlyPipeline(advanceStages, match, engagementStages);
 
-    const series = await this.findAggregate(pipeline, { hint: built.hint });
+    const series = await this.findAggregate(pipeline, {
+      hint: built.hint,
+      maxTimeMS: AGGREGATE_MAX_TIME_MS,
+      allowDiskUse: true,
+    });
     return { series, isDailyGrouping, diffHour, startDate, endDate };
   }
 

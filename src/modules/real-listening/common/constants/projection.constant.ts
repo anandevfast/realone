@@ -5,6 +5,7 @@
  */
 export const PROJECT_SOCIAL_MESSAGE: Record<string, 0 | 1 | Record<string, 0 | 1>> = {
   publisheddate: 1,
+  publishedAtUnix: 1,
   visibility: 1,
   status: 1,
   code: 1,

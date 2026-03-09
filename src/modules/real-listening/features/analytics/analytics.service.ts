@@ -11,6 +11,8 @@ import {
   getTagsFromData,
   normalizeChannelName,
   lookupKeywordName,
+  lookupKeywordColor,
+  lookupTagColor,
   clearEmptyYData,
   clearEmptySeriesData,
 } from '../../common/utils/aggregation.util';
@@ -49,13 +51,16 @@ export class AnalyticsService {
 
   private processChart(chartName: string, result: TimeSeriesResult, dto: AnalyticsFilterDTO): any {
     const { series, isDailyGrouping, diffHour, startDate, endDate } = result;
-    const keywordNameMaps: any[] = [];
+    const keywordNameMaps = (dto as any).keywordNameMaps ?? [];
+    const keywordValues = (dto as any).keywordValues ?? [];
+    const tagNameMaps = (dto as any).tagNameMaps ?? [];
+    const tagValues = (dto as any).tagValues ?? [];
 
     switch (chartName) {
       case 'ShareKeyword':
-        return shareOfKeywordChart(series, dto, keywordNameMaps);
+        return shareOfKeywordChart(series, dto, keywordNameMaps, keywordValues);
       case 'BuzzKeyword':
-        return buzzKeywordChart(series, dto, keywordNameMaps, diffHour, startDate, endDate);
+        return buzzKeywordChart(series, dto, keywordNameMaps, diffHour, startDate, endDate, keywordValues);
       case 'ShareChannel':
         return shareOfChannelChart(series, dto);
       case 'ChannelKeyword':
@@ -69,15 +74,15 @@ export class AnalyticsService {
       case 'ShareSentiment':
         return shareOfSentimentChart(series, dto);
       case 'SentimentOver':
-        return sentimentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps);
+        return sentimentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps, keywordValues);
       case 'ChannelSentiment':
         return channelBySentimentChart(series, dto);
       case 'BuzzTimeTags':
-        return buzzTimelineByTagsChart(series, dto, diffHour, startDate, endDate);
+        return buzzTimelineByTagsChart(series, dto, diffHour, startDate, endDate, tagNameMaps, tagValues);
       case 'ShareTags':
-        return shareOfTagsChart(series, dto);
+        return shareOfTagsChart(series, dto, tagNameMaps, tagValues);
       case 'ChannelTags':
-        return channelByTagsChart(series, dto);
+        return channelByTagsChart(series, dto, tagNameMaps, tagValues);
       case 'SummaryChannel':
         return summaryChannelChart(series, dto);
       default:
@@ -87,22 +92,25 @@ export class AnalyticsService {
 
   private processAllCharts(result: TimeSeriesResult, dto: AnalyticsFilterDTO): any {
     const { series, diffHour, startDate, endDate } = result;
-    const keywordNameMaps: any[] = [];
+    const keywordNameMaps = (dto as any).keywordNameMaps ?? [];
+    const keywordValues = (dto as any).keywordValues ?? [];
+    const tagNameMaps = (dto as any).tagNameMaps ?? [];
+    const tagValues = (dto as any).tagValues ?? [];
 
     return {
-      shareOfKeywordTopic: shareOfKeywordChart(series, dto, keywordNameMaps),
-      buzzTimelineByKeywordTopics: buzzKeywordChart(series, dto, keywordNameMaps, diffHour, startDate, endDate),
+      shareOfKeywordTopic: shareOfKeywordChart(series, dto, keywordNameMaps, keywordValues),
+      buzzTimelineByKeywordTopics: buzzKeywordChart(series, dto, keywordNameMaps, diffHour, startDate, endDate, keywordValues),
       shareOfChannel: shareOfChannelChart(series, dto),
       channelByKeyword: channelByKeywordChart(series, dto, keywordNameMaps),
       buzzTimelineByTotal: buzzTimelineByTotalChart(series, dto, diffHour, startDate, endDate),
       channelByChannel: channelByChannelChart(series, dto),
       buzzTimelineByChannel: buzzTimelineByChannelChart(series, dto, diffHour, startDate, endDate),
       shareOfSentiment: shareOfSentimentChart(series, dto),
-      sentimentOverTime: sentimentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps),
+      sentimentOverTime: sentimentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps, keywordValues),
       channelBySentiment: channelBySentimentChart(series, dto),
-      buzzTimelineByTags: buzzTimelineByTagsChart(series, dto, diffHour, startDate, endDate),
-      shareOfTags: shareOfTagsChart(series, dto),
-      channelByTags: channelByTagsChart(series, dto),
+      buzzTimelineByTags: buzzTimelineByTagsChart(series, dto, diffHour, startDate, endDate, tagNameMaps, tagValues),
+      shareOfTags: shareOfTagsChart(series, dto, tagNameMaps, tagValues),
+      channelByTags: channelByTagsChart(series, dto, tagNameMaps, tagValues),
       summaryChannel: summaryChannelChart(series, dto),
     };
   }
@@ -116,6 +124,7 @@ export function shareOfKeywordChart(
   queryResults: any[],
   dto: AnalyticsFilterDTO,
   keywordNameMaps: any[] = [],
+  keywordValues: any[] = [],
 ): any[] {
   const data = flattenSeriesData(queryResults);
   const keywords = getKeywordsFromData(data, dto.keywords);
@@ -125,7 +134,8 @@ export function shareOfKeywordChart(
       .filter((d) => d.keyword?.includes(keyword))
       .reduce((sum, d) => sum + d.count, 0);
     const name = lookupKeywordName(keyword, keywordNameMaps);
-    return { name, y, fullLabel: keyword };
+    const color = lookupKeywordColor(keyword, keywordNameMaps, keywordValues);
+    return { name, color, y, fullLabel: keyword };
   });
 
   return dto.keywords?.length
@@ -140,6 +150,7 @@ export function buzzKeywordChart(
   diffHour: number,
   startDate: Date,
   endDate: Date,
+  keywordValues: any[] = [],
 ): any {
   const data = flattenSeriesData(queryResults);
   const keywords = getKeywordsFromData(data, dto.keywords);
@@ -163,8 +174,10 @@ export function buzzKeywordChart(
           .filter((d: any) => d.keyword?.includes(keyword))
           .reduce((sum: number, d: any) => sum + d.count, 0);
       });
+      const color = lookupKeywordColor(keyword, keywordNameMaps, keywordValues);
       return {
         name: lookupKeywordName(keyword, keywordNameMaps),
+        color,
         data: seriesData,
         fullLabel: keyword,
       };
@@ -188,8 +201,10 @@ export function buzzKeywordChart(
           .filter((d: any) => d.keyword?.includes(keyword))
           .reduce((sum: number, d: any) => sum + d.count, 0);
       });
+      const color = lookupKeywordColor(keyword, keywordNameMaps, keywordValues);
       return {
         name: lookupKeywordName(keyword, keywordNameMaps),
+        color,
         data: seriesData,
         fullLabel: keyword,
       };
@@ -437,6 +452,7 @@ export function sentimentOverTimeChart(
   startDate: Date,
   endDate: Date,
   keywordNameMaps: any[],
+  keywordValues: any[] = [],
 ): any {
   const allData = flattenSeriesData(queryResults);
   const keywords = getKeywordsFromData(allData, dto.keywords);
@@ -463,13 +479,17 @@ export function sentimentOverTimeChart(
       xAxis.categories.push(cursor.format('YYYY-MM-DD'));
       cursor = cursor.add(1, 'day');
     }
-    const series = keywords.map((keyword) => ({
-      name: lookupKeywordName(keyword, keywordNameMaps),
-      fullLabel: keyword,
-      data: xAxis.categories.map((date) =>
-        computeNetSentiment(queryResults.find((r) => r._id === date), keyword),
-      ),
-    }));
+    const series = keywords.map((keyword) => {
+      const color = lookupKeywordColor(keyword, keywordNameMaps, keywordValues);
+      return {
+        name: lookupKeywordName(keyword, keywordNameMaps),
+        color,
+        fullLabel: keyword,
+        data: xAxis.categories.map((date) =>
+          computeNetSentiment(queryResults.find((r) => r._id === date), keyword),
+        ),
+      };
+    });
     const result = { xAxis, series };
     return result.series.every((s) => s.data.every((v: number) => v === 0))
       ? { ...result, series: [] }
@@ -481,15 +501,19 @@ export function sentimentOverTimeChart(
       xAxis.categories.push(cursor.format('YYYY-MM-DDTHH:mm:ss.SSSSZ'));
       cursor = cursor.add(1, 'hour');
     }
-    const series = keywords.map((keyword) => ({
-      name: lookupKeywordName(keyword, keywordNameMaps),
-      fullLabel: keyword,
-      data: xAxis.categories.map((_, i) => {
-        const hour = (i + startHour) % 24;
-        const bucket = queryResults.find((r) => r._id === hour);
-        return computeNetSentiment(bucket, keyword);
-      }),
-    }));
+    const series = keywords.map((keyword) => {
+      const color = lookupKeywordColor(keyword, keywordNameMaps, keywordValues);
+      return {
+        name: lookupKeywordName(keyword, keywordNameMaps),
+        color,
+        fullLabel: keyword,
+        data: xAxis.categories.map((_, i) => {
+          const hour = (i + startHour) % 24;
+          const bucket = queryResults.find((r) => r._id === hour);
+          return computeNetSentiment(bucket, keyword);
+        }),
+      };
+    });
     const result = { xAxis, series };
     return result.series.every((s) => s.data.every((v: number) => v === 0))
       ? { ...result, series: [] }
@@ -526,6 +550,8 @@ export function buzzTimelineByTagsChart(
   diffHour: number,
   startDate: Date,
   endDate: Date,
+  tagNameMaps: any[] = [],
+  tagValues: any[] = [],
 ): any {
   const allData = flattenSeriesData(queryResults);
   const tags = getTagsFromData(allData, dto.tags as string[] | undefined);
@@ -539,17 +565,21 @@ export function buzzTimelineByTagsChart(
       xAxis.categories.push(cursor.format('YYYY-MM-DD'));
       cursor = cursor.add(1, 'day');
     }
-    const series = tags.map((tag) => ({
-      name: tag,
-      fullLabel: tag,
-      data: xAxis.categories.map((date) => {
-        const bucket = queryResults.find((r) => r._id === date);
-        if (!bucket) return 0;
-        return bucket.data
-          .filter((d: any) => d.tags?.includes(tag))
-          .reduce((sum: number, d: any) => sum + d.count, 0);
-      }),
-    }));
+    const series = tags.map((tag) => {
+      const color = lookupTagColor(tag, tagNameMaps, tagValues);
+      return {
+        name: tag,
+        color,
+        fullLabel: tag,
+        data: xAxis.categories.map((date) => {
+          const bucket = queryResults.find((r) => r._id === date);
+          if (!bucket) return 0;
+          return bucket.data
+            .filter((d: any) => d.tags?.includes(tag))
+            .reduce((sum: number, d: any) => sum + d.count, 0);
+        }),
+      };
+    });
     return clearEmptySeriesData({ xAxis, series });
   } else {
     const startHour = start.hour();
@@ -558,21 +588,25 @@ export function buzzTimelineByTagsChart(
       xAxis.categories.push(cursor.format('YYYY-MM-DDTHH:mm:ss.SSSSZ'));
       cursor = cursor.add(1, 'hour');
     }
-    const series = tags.map((tag) => ({
-      name: tag,
-      fullLabel: tag,
-      data: xAxis.categories.map((_, i) => {
-        const hour = (i + startHour) % 24;
-        const date = dayjs(xAxis.categories[i]).format('YYYY-MM-DD');
-        const bucket = queryResults.find(
-          (r) => r._id?.hour === hour && r._id?.date === date,
-        );
-        if (!bucket) return 0;
-        return bucket.data
-          .filter((d: any) => d.tags?.includes(tag))
-          .reduce((sum: number, d: any) => sum + d.count, 0);
-      }),
-    }));
+    const series = tags.map((tag) => {
+      const color = lookupTagColor(tag, tagNameMaps, tagValues);
+      return {
+        name: tag,
+        color,
+        fullLabel: tag,
+        data: xAxis.categories.map((_, i) => {
+          const hour = (i + startHour) % 24;
+          const date = dayjs(xAxis.categories[i]).format('YYYY-MM-DD');
+          const bucket = queryResults.find(
+            (r) => r._id?.hour === hour && r._id?.date === date,
+          );
+          if (!bucket) return 0;
+          return bucket.data
+            .filter((d: any) => d.tags?.includes(tag))
+            .reduce((sum: number, d: any) => sum + d.count, 0);
+        }),
+      };
+    });
     return clearEmptySeriesData({ xAxis, series });
   }
 }
@@ -580,15 +614,21 @@ export function buzzTimelineByTagsChart(
 export function shareOfTagsChart(
   queryResults: any[],
   dto: AnalyticsFilterDTO,
+  tagNameMaps: any[] = [],
+  tagValues: any[] = [],
 ): any[] {
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
 
-  const res = tags.map((tag) => ({
-    name: tag,
-    y: data.filter((d) => d.tags?.includes(tag)).reduce((sum, d) => sum + d.count, 0),
-    fullLabel: tag,
-  }));
+  const res = tags.map((tag) => {
+    const color = lookupTagColor(tag, tagNameMaps, tagValues);
+    return {
+      name: tag,
+      color,
+      y: data.filter((d) => d.tags?.includes(tag)).reduce((sum, d) => sum + d.count, 0),
+      fullLabel: tag,
+    };
+  });
 
   return dto.tags?.length
     ? res.every((r) => r.y === 0) ? [] : res
@@ -598,6 +638,8 @@ export function shareOfTagsChart(
 export function channelByTagsChart(
   queryResults: any[],
   dto: AnalyticsFilterDTO,
+  _tagNameMaps: any[] = [],
+  _tagValues: any[] = [],
 ): any {
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);

@@ -153,6 +153,40 @@ export function lookupKeywordName(
   return keywordNameMaps.find((k) => k._id == id)?.name ?? id;
 }
 
+/**
+ * Resolve color for a keyword from keyword_name_maps (by _id) or keyword_values (by name).
+ * Matches getShareOfKeywordChart / getBuzzKeywordChart in analytics.js.
+ */
+export function lookupKeywordColor(
+  keyword: string,
+  keywordNameMaps: any[],
+  keywordValues: any[] = [],
+): string | null {
+  const id = _.last(keyword.split('_')) ?? keyword;
+  const fromMap = keywordNameMaps.find((k) => k._id == id)?.color;
+  if (fromMap != null) return fromMap;
+  const fromValues = keywordValues.find((k) => k.name == id)?.color;
+  return fromValues ?? null;
+}
+
+/**
+ * Resolve color for a tag from tag_name_maps (by _id) or tag_values (by name).
+ * Tag may be "foo_bar" or "keyword§foo_bar"; last segment is used for lookup.
+ */
+export function lookupTagColor(
+  tag: string,
+  tagNameMaps: any[] = [],
+  tagValues: any[] = [],
+): string | null {
+  const parts = tag.indexOf('§') >= 0 ? tag.split('§')[1].split('_') : tag.split('_');
+  const lastTag = _.last(parts);
+  if (!lastTag) return null;
+  const fromMap = tagNameMaps.find((t) => t._id == lastTag)?.color;
+  if (fromMap != null) return fromMap;
+  const fromValues = tagValues.find((t) => t.name == lastTag)?.color;
+  return fromValues ?? null;
+}
+
 export function clearEmptyYData(arr: any[]): any[] {
   return arr.filter((item) => item.y !== 0);
 }
