@@ -24,6 +24,49 @@ import {
 export class AnalyticsService {
   constructor(private readonly analyticsRepository: AnalyticsRepository) {}
 
+  /**
+   * Enrich summaryChannel with message/mention and percent fields
+   * so frontend can build summaryBox without recomputing (current & compare).
+   */
+  private addSummaryChannelPercent(charts: any): any {
+    if (!charts || !Array.isArray(charts.summaryChannel)) {
+      return charts;
+    }
+
+    const items = charts.summaryChannel;
+    if (!items.length) {
+      return charts;
+    }
+
+    const totalMessage = _.sumBy(items, 'totalMessage');
+    const totalCount = _.sumBy(items, 'totalCount');
+
+    charts.summaryTotals = {
+      message: totalMessage,
+      mention: totalCount,
+    };
+
+    charts.summaryChannel = items.map((item: any) => ({
+      ...item,
+      message: item.totalMessage,
+      mention: item.totalCount,
+      percentMessage:
+        totalMessage > 0 ? item.totalMessage / totalMessage : 0,
+      percentMention: totalCount > 0 ? item.totalCount / totalCount : 0,
+    }));
+
+    return charts;
+  }
+
+  /** Build meta-only payload (summaryTotals + summaryChannel with percents). */
+  private toChartMeta(charts: any): any {
+    if (!charts) return null;
+    return {
+      summaryTotals: charts.summaryTotals ?? null,
+      summaryChannel: charts.summaryChannel ?? null,
+    };
+  }
+
   async query(dto: AnalyticsFilterDTO) {
     try {
       const [current, compareResult] = await Promise.all([
@@ -37,13 +80,32 @@ export class AnalyticsService {
         ? this.processChart(dto.chartName, current, dto)
         : this.processAllCharts(current, dto);
 
-      const result: any = { ...currentCharts };
+      const enrichedCurrent = this.addSummaryChannelPercent({
+        ...currentCharts,
+      });
+
+      if (dto?.metaOnly) {
+        const result: any = {
+          chartMeta: this.toChartMeta(enrichedCurrent),
+        };
+        if (compareResult) {
+          const compareCharts = dto.chartName
+            ? this.processChart(dto.chartName, compareResult, dto)
+            : this.processAllCharts(compareResult, dto);
+          const enrichedCompare = this.addSummaryChannelPercent(compareCharts);
+          result.compareMeta = this.toChartMeta(enrichedCompare);
+        }
+        return result;
+      }
+
+      const result: any = { ...enrichedCurrent };
 
       if (compareResult) {
         const compareCharts = dto.chartName
           ? this.processChart(dto.chartName, compareResult, dto)
           : this.processAllCharts(compareResult, dto);
-        result.compare = compareCharts;
+        const pickCompareChart = _.pick(compareCharts, ['summaryChannel','summaryTotals']);
+        result.compare = this.addSummaryChannelPercent(pickCompareChart);
       }
 
       return result;
