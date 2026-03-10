@@ -22,4 +22,3 @@ export const cacheConfig = registerAs('cache', () => ({
     port: Number(process.env.REDIS_PORT ?? 6379),
   },
 }));
-

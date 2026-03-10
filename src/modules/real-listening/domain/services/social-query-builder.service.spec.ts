@@ -317,25 +317,28 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
   // ---------- statusMessage ----------
   it('sets match.statusMessage { $in: ["read"] } when statusMessage is ["read"]', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      { ...BASE_DTO, statusMessage: ['read'] } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      statusMessage: ['read'],
+    } as any);
     expect(result.match.statusMessage).toEqual({ $in: ['read'] });
   });
 
   it('sets match.statusMessage { $nin: ["read"] } when statusMessage is ["unread"]', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      { ...BASE_DTO, statusMessage: ['unread'] } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      statusMessage: ['unread'],
+    } as any);
     expect(result.match.statusMessage).toEqual({ $nin: ['read'] });
   });
 
   it('does NOT set match.statusMessage when statusMessage length >= 2', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      { ...BASE_DTO, statusMessage: ['read', 'unread'] } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      statusMessage: ['read', 'unread'],
+    } as any);
     expect(result.match.statusMessage).toBeUndefined();
   });
 
@@ -401,9 +404,10 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
   // ---------- arr_id ----------
   it('sets match._id $in ObjectIds when arr_id provided', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      { ...BASE_DTO, arr_id: ['507f1f77bcf86cd799439011'] } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      arr_id: ['507f1f77bcf86cd799439011'],
+    } as any);
     expect(result.match._id).toBeDefined();
     expect(result.match._id.$in).toHaveLength(1);
     expect(String(result.match._id.$in[0])).toBe('507f1f77bcf86cd799439011');
@@ -437,9 +441,10 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
   // ---------- Hint logic ----------
   it('uses { _id: 1 } hint when arr_id is provided', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      { ...BASE_DTO, arr_id: ['507f1f77bcf86cd799439011'] } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      arr_id: ['507f1f77bcf86cd799439011'],
+    } as any);
     expect(result.hint).toEqual({ _id: 1 });
   });
 
@@ -480,13 +485,11 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
   // ---------- favoriteMessage (no user fav data => no _id filter) ----------
   it('does not set match._id for favorite when email provided but user has no favorites', async () => {
     const svc = buildService();
-    const result = await svc.buildQuery(
-      {
-        ...BASE_DTO,
-        email: 'user@test.com',
-        favoriteMessage: ['favorite'],
-      } as any,
-    );
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      email: 'user@test.com',
+      favoriteMessage: ['favorite'],
+    } as any);
     expect(result.match._id).toBeUndefined();
   });
 

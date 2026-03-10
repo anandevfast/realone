@@ -3,7 +3,10 @@ import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 dayjs.extend(isoWeek);
 
-import { TimeRepository, TimeRawItem } from '../../infrastructure/repositories/time.repository';
+import {
+  TimeRepository,
+  TimeRawItem,
+} from '../../infrastructure/repositories/time.repository';
 import { TimeFilterDTO } from './dto/time-filter.dto';
 
 @Injectable()
@@ -23,7 +26,11 @@ export class TimeService {
     }
   }
 
-  private processChart(chartName: string, data: TimeRawItem[], dto: TimeFilterDTO): any {
+  private processChart(
+    chartName: string,
+    data: TimeRawItem[],
+    dto: TimeFilterDTO,
+  ): any {
     switch (chartName) {
       case 'volumeBytime':
         return volumeByTimeChart(data, dto);
@@ -55,20 +62,52 @@ export class TimeService {
  * Time Chart Processing Functions (pure, testable)
  * ===================================================================== */
 
-const ALL_HOURS = ['00','01','02','03','04','05','06','07','08','09','10','11',
-  '12','13','14','15','16','17','18','19','20','21','22','23'];
+const ALL_HOURS = [
+  '00',
+  '01',
+  '02',
+  '03',
+  '04',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+  '16',
+  '17',
+  '18',
+  '19',
+  '20',
+  '21',
+  '22',
+  '23',
+];
 const ALL_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function getKeywordsFromTimeData(data: TimeRawItem[], dto: TimeFilterDTO): string[] {
+function getKeywordsFromTimeData(
+  data: TimeRawItem[],
+  dto: TimeFilterDTO,
+): string[] {
   const all = [...new Set(data.map((d) => d._id.keywords).filter(Boolean))];
-  return dto.keywords?.length ? dto.keywords.filter((k) => all.includes(k)) : all;
+  return dto.keywords?.length
+    ? dto.keywords.filter((k) => all.includes(k))
+    : all;
 }
 
 function getFilterHours(dto: TimeFilterDTO): number[] {
   return ALL_HOURS.map((_, i) => i);
 }
 
-export function volumeByTimeChart(data: TimeRawItem[], dto: TimeFilterDTO): any {
+export function volumeByTimeChart(
+  data: TimeRawItem[],
+  dto: TimeFilterDTO,
+): any {
   const keywords = getKeywordsFromTimeData(data, dto);
   const filterHours = getFilterHours(dto);
   const counts = Array(24).fill(0);
@@ -105,7 +144,10 @@ export function volumeByDayChart(data: TimeRawItem[], dto: TimeFilterDTO): any {
   return { series: filteredSeries, xAxis: { categories: ALL_DAYS } };
 }
 
-export function heatmapByDayChart(data: TimeRawItem[], dto: TimeFilterDTO): any {
+export function heatmapByDayChart(
+  data: TimeRawItem[],
+  dto: TimeFilterDTO,
+): any {
   const keywords = getKeywordsFromTimeData(data, dto);
   const filterHours = getFilterHours(dto);
 
@@ -121,11 +163,16 @@ export function heatmapByDayChart(data: TimeRawItem[], dto: TimeFilterDTO): any 
     return { name: keyword, fullLabel: keyword, data: dayCounts };
   });
 
-  const filteredSeries = seriesData.filter((s) => !s.data.every((d) => d === 0));
+  const filteredSeries = seriesData.filter(
+    (s) => !s.data.every((d) => d === 0),
+  );
   return { series: filteredSeries, xAxis: { categories: ALL_DAYS } };
 }
 
-export function heatmapByTimeChart(data: TimeRawItem[], dto: TimeFilterDTO): any {
+export function heatmapByTimeChart(
+  data: TimeRawItem[],
+  dto: TimeFilterDTO,
+): any {
   const keywords = getKeywordsFromTimeData(data, dto);
   const filterHours = getFilterHours(dto);
 
@@ -140,11 +187,16 @@ export function heatmapByTimeChart(data: TimeRawItem[], dto: TimeFilterDTO): any
     return { name: keyword, fullLabel: keyword, data: hourCounts };
   });
 
-  const filteredSeries = seriesData.filter((s) => !s.data.every((d) => d === 0));
+  const filteredSeries = seriesData.filter(
+    (s) => !s.data.every((d) => d === 0),
+  );
   return { series: filteredSeries, xAxis: { categories: ALL_HOURS } };
 }
 
-export function volumeByDayAndTimeChart(data: TimeRawItem[], dto: TimeFilterDTO): any {
+export function volumeByDayAndTimeChart(
+  data: TimeRawItem[],
+  dto: TimeFilterDTO,
+): any {
   const keywords = getKeywordsFromTimeData(data, dto);
   const filterHours = getFilterHours(dto);
 

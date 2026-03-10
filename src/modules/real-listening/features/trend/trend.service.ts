@@ -18,20 +18,23 @@ export class TrendService {
     }
   }
 
-  private async processChart(chartName: string, dto: TrendFilterDTO): Promise<any> {
+  private async processChart(
+    chartName: string,
+    dto: TrendFilterDTO,
+  ): Promise<any> {
     switch (chartName) {
       case 'shareSpeakerType':
         return this.getShareOfSpeakerType(dto);
       case 'shareIntent':
         return this.getShareOfIntent(dto);
       case 'hostagetop100':
-        return this.trendRepository.getTop100Hashtags(dto).then((r) =>
-          r.filter((item) => item.name !== '#'),
-        );
+        return this.trendRepository
+          .getTop100Hashtags(dto)
+          .then((r) => r.filter((item) => item.name !== '#'));
       case 'top100Words':
-        return this.trendRepository.getTop100Words(dto).then((r) =>
-          r.filter((item) => item.name !== '#'),
-        );
+        return this.trendRepository
+          .getTop100Words(dto)
+          .then((r) => r.filter((item) => item.name !== '#'));
       case 'gender':
         return this.getGenderDemography(dto);
       case 'genderAge': {
@@ -112,9 +115,17 @@ export function buildTypeChart(data: any[], dto: TrendFilterDTO): any {
   };
 
   if (!dto.metric || dto.metric === 'mention' || dto.metric === 'engagement') {
-    result.y_axis.push({ name: 'engagement', type: 'spline', data: arr_engagement });
+    result.y_axis.push({
+      name: 'engagement',
+      type: 'spline',
+      data: arr_engagement,
+    });
   } else if (dto.metric === 'engagement_views') {
-    result.y_axis.push({ name: 'engagement views', type: 'spline', data: arr_engagement_view });
+    result.y_axis.push({
+      name: 'engagement views',
+      type: 'spline',
+      data: arr_engagement_view,
+    });
   }
 
   return result;
@@ -148,7 +159,15 @@ export function buildGenderResult(raw: any[]): any {
 }
 
 export function buildGenderAgeResult(raw: any[]): any {
-  const AGE_CATEGORIES = ['11-20', '21-30', '31-40', '41-50', '51-60', '> 60', 'unknown'];
+  const AGE_CATEGORIES = [
+    '11-20',
+    '21-30',
+    '31-40',
+    '41-50',
+    '51-60',
+    '> 60',
+    'unknown',
+  ];
   const series = [
     { name: 'male', data: Array(AGE_CATEGORIES.length).fill(0) },
     { name: 'female', data: Array(AGE_CATEGORIES.length).fill(0) },

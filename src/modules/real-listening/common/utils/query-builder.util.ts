@@ -76,7 +76,11 @@ export function isCompoundMigrationReady(indexes: MongoIndexSpec[]): boolean {
  * Input shape: { sortBy?, monitor?, keywords? } (e.g. from FilterQueryDTO).
  */
 export function buildMongoHint(
-  input: { sortBy?: string; monitor?: Record<string, string[]>; keywords?: string[] },
+  input: {
+    sortBy?: string;
+    monitor?: Record<string, string[]>;
+    keywords?: string[];
+  },
   mongoIndexes: MongoIndexSpec[],
   useSort = true,
 ): Record<string, number> {
@@ -87,8 +91,7 @@ export function buildMongoHint(
   const hasMonitor = Object.values(input.monitor ?? {}).some(
     (arr) => Array.isArray(arr) && arr.length > 0,
   );
-  const hasKeyword =
-    Array.isArray(input.keywords) && input.keywords.length > 0;
+  const hasKeyword = Array.isArray(input.keywords) && input.keywords.length > 0;
 
   const compoundReady = isCompoundMigrationReady(mongoIndexes);
 

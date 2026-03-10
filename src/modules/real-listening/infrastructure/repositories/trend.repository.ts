@@ -9,7 +9,10 @@ import {
 import { BaseRepository } from 'src/core/database/base.repository';
 import { SocialQueryBuilderService } from '../../domain/services/social-query-builder.service';
 import { TrendFilterDTO } from '../../features/trend/dto/trend-filter.dto';
-import { buildEngagementStage, buildMetricExpression } from '../../common/utils/aggregation.util';
+import {
+  buildEngagementStage,
+  buildMetricExpression,
+} from '../../common/utils/aggregation.util';
 
 @Injectable()
 export class TrendRepository extends BaseRepository<SocialMessageDocument> {
@@ -31,7 +34,9 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
 
   private async getTypeData(dto: TrendFilterDTO, type: string): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const engagementStages = buildEngagementStage(dto.metric);
 
     const pipeline: any[] = [
@@ -45,7 +50,10 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
           mention: { $sum: 1 },
           engagementView: {
             $sum: {
-              $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }],
+              $add: [
+                { $ifNull: ['$totalEngagement', 0] },
+                { $ifNull: ['$totalView', 0] },
+              ],
             },
           },
         },
@@ -58,7 +66,9 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
 
   async getTop100Words(dto: TrendFilterDTO): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const metric = dto.metric ?? 'mention';
 
     const metricExpression: Record<string, any> = {
@@ -66,7 +76,10 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
       engagement: { $sum: { $ifNull: ['$totalEngagement', 0] } },
       engagement_views: {
         $sum: {
-          $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }],
+          $add: [
+            { $ifNull: ['$totalEngagement', 0] },
+            { $ifNull: ['$totalView', 0] },
+          ],
         },
       },
     };
@@ -92,7 +105,9 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
 
   async getTop100Hashtags(dto: TrendFilterDTO): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const metric = dto.metric ?? 'mention';
 
     const metricExpression: Record<string, any> = {
@@ -100,7 +115,10 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
       engagement: { $sum: { $ifNull: ['$totalEngagement', 0] } },
       engagement_views: {
         $sum: {
-          $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }],
+          $add: [
+            { $ifNull: ['$totalEngagement', 0] },
+            { $ifNull: ['$totalView', 0] },
+          ],
         },
       },
     };
@@ -126,7 +144,9 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
 
   async getGenderData(dto: TrendFilterDTO): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const metricExpr = buildMetricExpression(dto.metric);
 
     const pipeline: any[] = [
@@ -147,13 +167,20 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
 
   async getGenderAgeData(dto: TrendFilterDTO): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const metric = dto.metric ?? 'mention';
 
     const metricExpression: Record<string, any> = {
       mention: 1,
       engagement: { $ifNull: ['$totalEngagement', 0] },
-      engagement_views: { $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }] },
+      engagement_views: {
+        $add: [
+          { $ifNull: ['$totalEngagement', 0] },
+          { $ifNull: ['$totalView', 0] },
+        ],
+      },
     };
     const metricExpr = metricExpression[metric] ?? 1;
 
@@ -166,9 +193,21 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
           boundaries: [11, 21, 31, 41, 51, 61, 100],
           default: 'unknown',
           output: {
-            maleValue: { $sum: { $cond: [{ $eq: ['$content.gender', 'male'] }, metricExpr, 0] } },
-            femaleValue: { $sum: { $cond: [{ $eq: ['$content.gender', 'female'] }, metricExpr, 0] } },
-            unknownValue: { $sum: { $cond: [{ $eq: ['$content.gender', 'unknown'] }, metricExpr, 0] } },
+            maleValue: {
+              $sum: {
+                $cond: [{ $eq: ['$content.gender', 'male'] }, metricExpr, 0],
+              },
+            },
+            femaleValue: {
+              $sum: {
+                $cond: [{ $eq: ['$content.gender', 'female'] }, metricExpr, 0],
+              },
+            },
+            unknownValue: {
+              $sum: {
+                $cond: [{ $eq: ['$content.gender', 'unknown'] }, metricExpr, 0],
+              },
+            },
           },
         },
       },

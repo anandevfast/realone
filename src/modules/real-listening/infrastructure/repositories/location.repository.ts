@@ -9,7 +9,10 @@ import {
 import { BaseRepository } from 'src/core/database/base.repository';
 import { SocialQueryBuilderService } from '../../domain/services/social-query-builder.service';
 import { LocationFilterDTO } from '../../features/location/dto/location-filter.dto';
-import { buildEngagementStage, buildComparePeriod } from '../../common/utils/aggregation.util';
+import {
+  buildEngagementStage,
+  buildComparePeriod,
+} from '../../common/utils/aggregation.util';
 
 export interface LocationRawItem {
   _id: string;
@@ -43,14 +46,26 @@ export class LocationRepository extends BaseRepository<SocialMessageDocument> {
       }
     }
 
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const engagementStages = buildEngagementStage(dto.metric);
 
     const provinceFilter = {
       $or: [
         { provinceName: { $nin: [null, 'Nan', ''] } },
-        { 'center_data.location.province': { $exists: true, $nin: [null, 'Nan', ''] } },
-        { 'content.location.province': { $exists: true, $nin: [null, 'Nan', ''] } },
+        {
+          'center_data.location.province': {
+            $exists: true,
+            $nin: [null, 'Nan', ''],
+          },
+        },
+        {
+          'content.location.province': {
+            $exists: true,
+            $nin: [null, 'Nan', ''],
+          },
+        },
       ],
     };
 
@@ -68,7 +83,11 @@ export class LocationRepository extends BaseRepository<SocialMessageDocument> {
       {
         $addFields: {
           provinceName: {
-            $ifNull: ['$provinceName', '$center_data.location.province', '$content.location.province'],
+            $ifNull: [
+              '$provinceName',
+              '$center_data.location.province',
+              '$content.location.province',
+            ],
           },
         },
       },
@@ -78,7 +97,12 @@ export class LocationRepository extends BaseRepository<SocialMessageDocument> {
           count: { $sum: 1 },
           place: {
             $first: {
-              $ifNull: ['$place', '$center_data.location.place', '$content.location.place', {}],
+              $ifNull: [
+                '$place',
+                '$center_data.location.place',
+                '$content.location.place',
+                {},
+              ],
             },
           },
         },
@@ -89,7 +113,9 @@ export class LocationRepository extends BaseRepository<SocialMessageDocument> {
     return this.findAggregate<LocationRawItem>(pipeline, { hint: built.hint });
   }
 
-  async getCompareLocationData(dto: LocationFilterDTO): Promise<LocationRawItem[]> {
+  async getCompareLocationData(
+    dto: LocationFilterDTO,
+  ): Promise<LocationRawItem[]> {
     const { start, end } = buildComparePeriod(dto.startDate!, dto.endDate!);
     return this.getLocationData(dto, start, end);
   }

@@ -170,6 +170,4 @@ export class FilterQueryDTO {
   @ValidateNested()
   @Type(() => AdvanceSearchDTO)
   advanceSearch?: AdvanceSearchDTO;
-
 }
-

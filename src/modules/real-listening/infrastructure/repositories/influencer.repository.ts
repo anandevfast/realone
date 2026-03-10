@@ -9,7 +9,10 @@ import {
 import { BaseRepository } from 'src/core/database/base.repository';
 import { SocialQueryBuilderService } from '../../domain/services/social-query-builder.service';
 import { InfluencerFilterDTO } from '../../features/influencer/dto/influencer-filter.dto';
-import { SENTIMENT_COND, DATE_GROUP_DAILY } from '../../common/utils/aggregation.util';
+import {
+  SENTIMENT_COND,
+  DATE_GROUP_DAILY,
+} from '../../common/utils/aggregation.util';
 
 export interface InfluencerRawResult {
   _id: {
@@ -33,7 +36,9 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
     super(model);
   }
 
-  async getGroupedData(dto: InfluencerFilterDTO): Promise<InfluencerRawResult[]> {
+  async getGroupedData(
+    dto: InfluencerFilterDTO,
+  ): Promise<InfluencerRawResult[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
     const advanceStages: any[] = built.advanceSearchFields
       ? [built.advanceSearchFields]
@@ -59,7 +64,12 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
                   {
                     $ifNull: [
                       '$content.author',
-                      { $ifNull: ['$content.user.username', '$content.username'] },
+                      {
+                        $ifNull: [
+                          '$content.user.username',
+                          '$content.username',
+                        ],
+                      },
                     ],
                   },
                 ],
@@ -84,7 +94,9 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
       },
     ];
 
-    return this.findAggregate<InfluencerRawResult>(pipeline, { hint: built.hint });
+    return this.findAggregate<InfluencerRawResult>(pipeline, {
+      hint: built.hint,
+    });
   }
 
   async getTopInfluencer(dto: InfluencerFilterDTO): Promise<any[]> {
@@ -102,7 +114,12 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
             name: {
               $ifNull: [
                 '$content.from.name',
-                { $ifNull: ['$content.user.name', { $ifNull: ['$content.author', '$content.username'] }] },
+                {
+                  $ifNull: [
+                    '$content.user.name',
+                    { $ifNull: ['$content.author', '$content.username'] },
+                  ],
+                },
               ],
             },
             domain: '$domain',

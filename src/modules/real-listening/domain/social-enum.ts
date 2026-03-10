@@ -100,4 +100,3 @@ export enum SortBy {
   MOST_FOLLOWERS = 'follower-desc',
   LESS_FOLLOWERS = 'follower-asc',
 }
-

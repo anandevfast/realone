@@ -40,10 +40,15 @@ export function buildEngagementStage(metric?: string): Record<string, any>[] {
     mention: 1,
     engagement: { $ifNull: ['$totalEngagement', 0] },
     engagement_views: {
-      $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }],
+      $add: [
+        { $ifNull: ['$totalEngagement', 0] },
+        { $ifNull: ['$totalView', 0] },
+      ],
     },
   };
-  return [{ $addFields: { engagement: metricExpressions[metric ?? 'mention'] ?? 1 } }];
+  return [
+    { $addFields: { engagement: metricExpressions[metric ?? 'mention'] ?? 1 } },
+  ];
 }
 
 export function buildMetricExpression(metric?: string): Record<string, any> {
@@ -51,7 +56,10 @@ export function buildMetricExpression(metric?: string): Record<string, any> {
     mention: 1,
     engagement: { $ifNull: ['$totalEngagement', 0] },
     engagement_views: {
-      $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }],
+      $add: [
+        { $ifNull: ['$totalEngagement', 0] },
+        { $ifNull: ['$totalView', 0] },
+      ],
     },
   };
   return metricExpressions[metric ?? 'mention'] ?? 1;
@@ -67,7 +75,8 @@ export function buildComparePeriod(
   const firstDayOfMonth = start.startOf('month');
   const lastDayOfMonth = end.endOf('month');
   const isFullMonth =
-    firstDayOfMonth.diff(start, 'day') === 0 && lastDayOfMonth.diff(end, 'day') === 0;
+    firstDayOfMonth.diff(start, 'day') === 0 &&
+    lastDayOfMonth.diff(end, 'day') === 0;
 
   if (isFullMonth) {
     return {
@@ -87,22 +96,32 @@ export function flattenSeriesData(series: any[]): any[] {
   return ([] as any[]).concat(...series.map((s) => s.data ?? []));
 }
 
-export function getKeywordsFromData(data: any[], filterKeywords?: string[]): string[] {
+export function getKeywordsFromData(
+  data: any[],
+  filterKeywords?: string[],
+): string[] {
   const allKeywords = [
-    ...new Set<string>(([] as string[]).concat(...data.map((d) => d.keyword ?? []))),
+    ...new Set<string>(
+      ([] as string[]).concat(...data.map((d) => d.keyword ?? [])),
+    ),
   ];
   const hasNoKeyword = allKeywords.includes('No Keyword');
 
   let keywords: string[];
   if (filterKeywords?.length) {
-    keywords = hasNoKeyword ? [...filterKeywords, 'No Keyword'] : [...filterKeywords];
+    keywords = hasNoKeyword
+      ? [...filterKeywords, 'No Keyword']
+      : [...filterKeywords];
   } else {
     keywords = allKeywords;
   }
   return keywords.sort().filter((k) => k !== 'Monitor');
 }
 
-export function getChannelsFromData(data: any[], filterChannels?: string[]): string[] {
+export function getChannelsFromData(
+  data: any[],
+  filterChannels?: string[],
+): string[] {
   if (filterChannels?.length) {
     const result: string[] = [];
     for (const ch of filterChannels) {
@@ -121,16 +140,26 @@ export function getChannelsFromData(data: any[], filterChannels?: string[]): str
     return [...new Set(result)].sort();
   }
   return [
-    ...new Set<string>(data.map((d) => d.channel?.split('-')[0]).filter(Boolean)),
+    ...new Set<string>(
+      data.map((d) => d.channel?.split('-')[0]).filter(Boolean),
+    ),
   ].sort();
 }
 
-export function getTagsFromData(data: any[], filterTags?: string[], exTags?: string[]): string[] {
+export function getTagsFromData(
+  data: any[],
+  filterTags?: string[],
+  exTags?: string[],
+): string[] {
   let tags: string[];
   if (filterTags?.length) {
     tags = filterTags;
   } else {
-    tags = [...new Set<string>(([] as string[]).concat(...data.map((d) => d.tags ?? [])))];
+    tags = [
+      ...new Set<string>(
+        ([] as string[]).concat(...data.map((d) => d.tags ?? [])),
+      ),
+    ];
   }
 
   if (exTags?.length) {
@@ -142,7 +171,9 @@ export function getTagsFromData(data: any[], filterTags?: string[], exTags?: str
 }
 
 export function normalizeChannelName(name: string): string {
-  return name.replace('facebook-', 'facebookpage-').replace('youtube-post', 'youtube');
+  return name
+    .replace('facebook-', 'facebookpage-')
+    .replace('youtube-post', 'youtube');
 }
 
 export function lookupKeywordName(
@@ -178,7 +209,8 @@ export function lookupTagColor(
   tagNameMaps: any[] = [],
   tagValues: any[] = [],
 ): string | null {
-  const parts = tag.indexOf('§') >= 0 ? tag.split('§')[1].split('_') : tag.split('_');
+  const parts =
+    tag.indexOf('§') >= 0 ? tag.split('§')[1].split('_') : tag.split('_');
   const lastTag = _.last(parts);
   if (!lastTag) return null;
   const fromMap = tagNameMaps.find((t) => t._id == lastTag)?.color;
@@ -191,11 +223,13 @@ export function clearEmptyYData(arr: any[]): any[] {
   return arr.filter((item) => item.y !== 0);
 }
 
-export function clearEmptySeriesData(result: {
+export function clearEmptySeriesData(result: { xAxis: any; series: any[] }): {
   xAxis: any;
   series: any[];
-}): { xAxis: any; series: any[] } {
+} {
   if (!result?.series) return result;
-  result.series = result.series.filter((serie) => !serie.data.every((d: any) => d === 0));
+  result.series = result.series.filter(
+    (serie) => !serie.data.every((d: any) => d === 0),
+  );
   return result;
 }

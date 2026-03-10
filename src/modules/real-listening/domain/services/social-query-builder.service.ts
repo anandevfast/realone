@@ -54,7 +54,9 @@ export class SocialQueryBuilderService {
    * Get MongoDB indexes for the collection (cached).
    * Uses Nest CacheModule; equivalent to getIndexesMongo(collectionName) with Redis.
    */
-  async getIndexes(collectionName: string = 'social_messages'): Promise<MongoIndexSpec[]> {
+  async getIndexes(
+    collectionName: string = 'social_messages',
+  ): Promise<MongoIndexSpec[]> {
     try {
       const cached = await this.cache.get<MongoIndexSpec[]>(INDEXES_CACHE_KEY);
       if (cached && Array.isArray(cached)) {
@@ -135,7 +137,9 @@ export class SocialQueryBuilderService {
       input.favoriteMessage.length < 2 &&
       email
     ) {
-      const isFavorite = input.favoriteMessage.includes(FavoriteMessage.Favorite);
+      const isFavorite = input.favoriteMessage.includes(
+        FavoriteMessage.Favorite,
+      );
 
       // TODO: get user favorites from database (must return { favorites: [{ id: string }, ...] })
       const userFavData: any = { favorites: [] };
@@ -234,7 +238,10 @@ export class SocialQueryBuilderService {
     /* ===============================
      * SENTIMENT
      * =============================== */
-    if (Array.isArray((input as any).sentiment) && (input as any).sentiment.length) {
+    if (
+      Array.isArray((input as any).sentiment) &&
+      (input as any).sentiment.length
+    ) {
       result.match['content.sentiment'] = {
         $in: (input as any).sentiment,
       };
@@ -243,7 +250,10 @@ export class SocialQueryBuilderService {
     /* ===============================
      * SENT TO ALERT (filterBy)
      * =============================== */
-    if (Array.isArray((input as any).filterBy) && (input as any).filterBy.length) {
+    if (
+      Array.isArray((input as any).filterBy) &&
+      (input as any).filterBy.length
+    ) {
       result.match['sendTo.alert'] = {
         $in: (input as any).filterBy,
       };
@@ -327,7 +337,10 @@ export class SocialQueryBuilderService {
       result.match.tags = { $in: (input as any).tags };
     }
 
-    if (Array.isArray((input as any).ex_tags) && (input as any).ex_tags.length) {
+    if (
+      Array.isArray((input as any).ex_tags) &&
+      (input as any).ex_tags.length
+    ) {
       result.match.tags = {
         ...(result.match.tags || {}),
         $nin: (input as any).ex_tags,
@@ -369,9 +382,7 @@ export class SocialQueryBuilderService {
      * =============================== */
     if (Array.isArray((input as any).arr_id) && (input as any).arr_id.length) {
       result.match._id = {
-        $in: (input as any).arr_id.map(
-          (id: string) => new Types.ObjectId(id),
-        ),
+        $in: (input as any).arr_id.map((id: string) => new Types.ObjectId(id)),
       };
     }
 
@@ -406,8 +417,7 @@ export class SocialQueryBuilderService {
                 $expr: {
                   $gt: [
                     {
-                      $toInt:
-                        '$content.statisticsChannel.subscriberCount',
+                      $toInt: '$content.statisticsChannel.subscriberCount',
                     },
                     targetFollower,
                   ],
@@ -632,9 +642,7 @@ function genAdvanceSearchMatch(search: any) {
 
       if (include.length > 0) {
         regexParts.push(
-          `.*(${include
-            .map((w) => escapeRegex(w.trim()))
-            .join('|')})`,
+          `.*(${include.map((w) => escapeRegex(w.trim())).join('|')})`,
         );
       }
 
@@ -683,9 +691,7 @@ function genAdvanceSearchMatch(search: any) {
 
       if (include.length > 0) {
         regexParts.push(
-          `.*(${include
-            .map((w) => escapeRegex(w.trim()))
-            .join('|')})`,
+          `.*(${include.map((w) => escapeRegex(w.trim())).join('|')})`,
         );
       }
 
@@ -697,7 +703,11 @@ function genAdvanceSearchMatch(search: any) {
     andList.push({ channel: { $regex: search.is.join('|') } });
   }
 
-  if (search.engagement && search.engagement.operator && search.engagement.value) {
+  if (
+    search.engagement &&
+    search.engagement.operator &&
+    search.engagement.value
+  ) {
     const op = operatorMap[search.engagement.operator];
     if (op) {
       andList.push({
@@ -722,4 +732,3 @@ function genAdvanceSearchMatch(search: any) {
     advanceSearchAuthor,
   };
 }
-

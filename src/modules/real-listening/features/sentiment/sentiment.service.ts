@@ -46,7 +46,11 @@ export class SentimentService {
     }
   }
 
-  private processChart(chartName: string, result: TimeSeriesResult, dto: SentimentFilterDTO): any {
+  private processChart(
+    chartName: string,
+    result: TimeSeriesResult,
+    dto: SentimentFilterDTO,
+  ): any {
     const { series, diffHour, startDate, endDate } = result;
     const keywordNameMaps: any[] = [];
 
@@ -56,7 +60,14 @@ export class SentimentService {
       case 'SentimentKeywordTopics':
         return sentByKeywordTopicsChart(series, dto, keywordNameMaps);
       case 'netSentimentOverTime':
-        return sentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps);
+        return sentOverTimeChart(
+          series,
+          dto,
+          diffHour,
+          startDate,
+          endDate,
+          keywordNameMaps,
+        );
       case 'SentimentChannel':
         return sentByChannelChart(series, dto);
       case 'SentimentCategory':
@@ -78,14 +89,28 @@ export class SentimentService {
     }
   }
 
-  private processAllCharts(result: TimeSeriesResult, dto: SentimentFilterDTO): any {
+  private processAllCharts(
+    result: TimeSeriesResult,
+    dto: SentimentFilterDTO,
+  ): any {
     const { series, diffHour, startDate, endDate } = result;
     const keywordNameMaps: any[] = [];
 
     return {
       shareOfSentiment: sentShareOfSentimentChart(series, dto),
-      sentimentByKeywordTopics: sentByKeywordTopicsChart(series, dto, keywordNameMaps),
-      sentimentOverTime: sentOverTimeChart(series, dto, diffHour, startDate, endDate, keywordNameMaps),
+      sentimentByKeywordTopics: sentByKeywordTopicsChart(
+        series,
+        dto,
+        keywordNameMaps,
+      ),
+      sentimentOverTime: sentOverTimeChart(
+        series,
+        dto,
+        diffHour,
+        startDate,
+        endDate,
+        keywordNameMaps,
+      ),
       sentimentByChannel: sentByChannelChart(series, dto),
       sentimentByCategory: sentByCategoryChart(series, dto),
       sentimentByTag: sentByTagChart(series, dto),
@@ -139,7 +164,13 @@ export function sentByKeywordTopicsChart(
     name: sentiment,
     data: keywords.map((keyword) =>
       data
-        .map((d) => d.count * (d.keyword ?? []).filter((k: string) => d.sentiment === sentiment && k === keyword).length)
+        .map(
+          (d) =>
+            d.count *
+            (d.keyword ?? []).filter(
+              (k: string) => d.sentiment === sentiment && k === keyword,
+            ).length,
+        )
         .reduce((sum, v) => sum + v, 0),
     ),
   })).sort((a, b) => (a.name > b.name ? -1 : 1));
@@ -164,9 +195,15 @@ export function sentOverTimeChart(
 
   const computeNetSentiment = (bucket: any, keyword: string): number => {
     if (!bucket) return 0;
-    const items = bucket.data.filter((d: any) => (d.keyword ?? []).includes(keyword));
-    const pos = items.filter((d: any) => d.sentiment === 'positive').reduce((s: number, d: any) => s + d.count, 0);
-    const neg = items.filter((d: any) => d.sentiment === 'negative').reduce((s: number, d: any) => s + d.count, 0);
+    const items = bucket.data.filter((d: any) =>
+      (d.keyword ?? []).includes(keyword),
+    );
+    const pos = items
+      .filter((d: any) => d.sentiment === 'positive')
+      .reduce((s: number, d: any) => s + d.count, 0);
+    const neg = items
+      .filter((d: any) => d.sentiment === 'negative')
+      .reduce((s: number, d: any) => s + d.count, 0);
     return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
   };
 
@@ -180,7 +217,10 @@ export function sentOverTimeChart(
       name: lookupKeywordName(keyword, keywordNameMaps),
       fullLabel: keyword,
       data: xAxis.categories.map((date) =>
-        computeNetSentiment(queryResults.find((r) => r._id === date), keyword),
+        computeNetSentiment(
+          queryResults.find((r) => r._id === date),
+          keyword,
+        ),
       ),
     }));
     const result = { xAxis, series };
@@ -199,7 +239,10 @@ export function sentOverTimeChart(
       fullLabel: keyword,
       data: xAxis.categories.map((_, i) => {
         const hour = (i + startHour) % 24;
-        return computeNetSentiment(queryResults.find((r) => r._id === hour), keyword);
+        return computeNetSentiment(
+          queryResults.find((r) => r._id === hour),
+          keyword,
+        );
       }),
     }));
     const result = { xAxis, series };
@@ -237,7 +280,9 @@ export function sentByCategoryChart(
   const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
-  const categories = [...new Set(tags.map((t) => t?.split('_')[0]).filter(Boolean))].sort();
+  const categories = [
+    ...new Set(tags.map((t) => t?.split('_')[0]).filter(Boolean)),
+  ].sort();
 
   const series = ALL_SENTIMENTS.map((sentiment) => ({
     name: sentiment,
@@ -292,8 +337,12 @@ export function netSentimentChart(
       name: 'net sentiment',
       data: keywords.map((keyword) => {
         const items = data.filter((d) => (d.keyword ?? []).includes(keyword));
-        const pos = items.filter((d) => d.sentiment === 'positive').reduce((s, d) => s + d.count, 0);
-        const neg = items.filter((d) => d.sentiment === 'negative').reduce((s, d) => s + d.count, 0);
+        const pos = items
+          .filter((d) => d.sentiment === 'positive')
+          .reduce((s, d) => s + d.count, 0);
+        const neg = items
+          .filter((d) => d.sentiment === 'negative')
+          .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),
     },
@@ -308,15 +357,23 @@ export function categoryNetSentimentChart(
 ): any {
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
-  const categories = [...new Set(tags.map((t) => t?.split('_')[0]).filter(Boolean))].sort();
+  const categories = [
+    ...new Set(tags.map((t) => t?.split('_')[0]).filter(Boolean)),
+  ].sort();
 
   const series = [
     {
       name: 'net sentiment',
       data: categories.map((cat) => {
-        const items = data.filter((d) => (d.tags ?? []).some((t: string) => t?.startsWith(cat)));
-        const pos = items.filter((d) => d.sentiment === 'positive').reduce((s, d) => s + d.count, 0);
-        const neg = items.filter((d) => d.sentiment === 'negative').reduce((s, d) => s + d.count, 0);
+        const items = data.filter((d) =>
+          (d.tags ?? []).some((t: string) => t?.startsWith(cat)),
+        );
+        const pos = items
+          .filter((d) => d.sentiment === 'positive')
+          .reduce((s, d) => s + d.count, 0);
+        const neg = items
+          .filter((d) => d.sentiment === 'negative')
+          .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),
     },
@@ -337,8 +394,12 @@ export function tagNetSentimentChart(
       name: 'net sentiment',
       data: tags.map((tag) => {
         const items = data.filter((d) => (d.tags ?? []).includes(tag));
-        const pos = items.filter((d) => d.sentiment === 'positive').reduce((s, d) => s + d.count, 0);
-        const neg = items.filter((d) => d.sentiment === 'negative').reduce((s, d) => s + d.count, 0);
+        const pos = items
+          .filter((d) => d.sentiment === 'positive')
+          .reduce((s, d) => s + d.count, 0);
+        const neg = items
+          .filter((d) => d.sentiment === 'negative')
+          .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),
     },

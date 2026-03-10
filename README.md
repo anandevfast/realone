@@ -1,124 +1,356 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# RealOne Backend
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
+> **Enterprise-grade backend API** for **RealSmart Products** — a complete rewrite of the legacy Node.js/Express codebase in **NestJS**, designed for scalability, maintainability, and type safety.
 
-# 🚀 RealOne (Backend)
-
-โปรเจกต์นี้คือระบบ Backend สำหรับแพลตฟอร์ม Real Smart Product (Revamped version) ซึ่งถูกยกระดับสถาปัตยกรรมจาก Node.js/Express เดิม มาเป็น **NestJS** เพื่อรองรับการขยายตัวของระบบ (Scalability), บังคับใช้โครงสร้างที่เป็นมาตรฐานระดับองค์กร (Enterprise-grade Architecture), และเพิ่มความปลอดภัยในการเขียนโค้ดด้วย Type-Safety (TypeScript)
+[![NestJS](https://img.shields.io/badge/NestJS-10.0-red?logo=nestjs)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.1-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-9.0-green?logo=mongodb)](https://www.mongodb.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-orange)]()
 
 ---
 
-## 🏗️ Architecture & Diagram (สถาปัตยกรรมของระบบ)
+## 🎯 Overview
 
-ระบบถูกออกแบบด้วยแนวคิด **Modular Monolith** โดยแบ่งแยก **Business Logic** ของแต่ละ Product (เช่น **_Real Listening_**, **_Real Media_**, **_Real Engagement_**) ออกจากกันอย่างชัดเจน เพื่อให้ง่ายต่อการดูแลรักษา ป้องกันโค้ดพันกัน (Spaghetti Code) และเตรียมพร้อมสำหรับการแยกย้ายเป็น Microservices ในอนาคต
+**RealOne** is the unified backend platform powering multiple RealSmart products including:
 
-![Architecture Diagram](./assets/architecture-diagram.jpg)
+- **Real Listening** – Social media monitoring & analytics
+- **Real Media** – Media intelligence & PR tracking
+- **Real Engagement** – Audience engagement analytics
 
-## 📂 Project Structure (คำอธิบายโครงสร้างโฟลเดอร์)
+Built with a **Modular Monolith** architecture, each product module is isolated and independently testable, while sharing common infrastructure—ready to scale into microservices when needed.
 
-โครงสร้างโฟลเดอร์ถูกจัดวางตาม NestJS Best Practices โดยแบ่งเป็นส่วนหลักๆ ดังนี้:
+---
 
-1. src/core/ (หัวใจหลักของระบบ)
-   ส่วนนี้เก็บกลไก (Cross-cutting concerns) ที่ทุกๆ Module ในแอปพลิเคชันต้องใช้ร่วมกัน:
+## 🏗️ Architecture
 
-- **database/:** จัดการการเชื่อมต่อ Mongoose และ Repository พื้นฐาน
+```
+┌─────────────────────────────────────────────────┐
+│              API Gateway (NestJS)               │
+├─────────────────────────────────────────────────┤
+│  Auth Layer  │  Rate Limit  │  Global Filters  │
+├──────────────┴───────────────┴──────────────────┤
+│                                                 │
+│  ┌──────────────┐  ┌──────────────┐           │
+│  │ Real         │  │ Real         │           │
+│  │ Listening    │  │ Media        │  ...      │
+│  │              │  │              │           │
+│  │ • Messages   │  │ • Publishers │           │
+│  │ • Analytics  │  │ • Monitoring │           │
+│  │ • Sentiment  │  └──────────────┘           │
+│  │ • Influencer │                              │
+│  │ • Trend      │                              │
+│  │ • Time       │                              │
+│  │ • Location   │                              │
+│  └──────────────┘                              │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│          Core Infrastructure                    │
+│  • MongoDB (Mongoose)                          │
+│  • Cache (cache-manager)                       │
+│  • Queue (planned)                             │
+└─────────────────────────────────────────────────┘
+```
 
-- **filters/:** ดักจับ Error ทั่วทั้งระบบ (Global Exception Filter) เพื่อให้ Response รูปแบบเดียวกันเสมอ
+---
 
-- **interceptors/:** แปลงรูปแบบข้อมูล Response ขาออก หรือทำระบบ Logging กลาง
+## 📂 Project Structure
 
-- **middleware/:** จัดการ Request ก่อนเข้าสู่ Controller (เช่น การแนบ Request-ID เพื่อตามรอย Log)
+```
+realone/
+├── src/
+│   ├── main.ts                    # Application entry point
+│   ├── app.module.ts              # Root module
+│   │
+│   ├── auth/                      # Authentication (JWT)
+│   │   ├── guards/
+│   │   ├── strategies/
+│   │   └── decorators/
+│   │
+│   ├── config/                    # Environment configuration
+│   │   ├── app.config.ts
+│   │   ├── database.config.ts
+│   │   ├── auth.config.ts
+│   │   └── env.schema.ts          # Joi validation for .env
+│   │
+│   ├── core/                      # Shared infrastructure
+│   │   ├── database/              # MongoDB setup, BaseRepository
+│   │   ├── filters/               # Global exception filters
+│   │   ├── interceptors/          # Response transformation, logging
+│   │   ├── middleware/            # Request ID, etc.
+│   │   └── rate-limit/            # Rate limiting
+│   │
+│   └── modules/                   # Business logic modules
+│       ├── real-listening/        # Social Listening platform
+│       │   ├── domain/            # Core business logic
+│       │   │   ├── filter-query.dto.ts
+│       │   │   ├── social-enum.ts
+│       │   │   └── services/
+│       │   │       └── social-query-builder.service.ts  # ⭐ Central query builder
+│       │   ├── features/          # Feature modules
+│       │   │   ├── messages/      # Message search & count
+│       │   │   ├── analytics/     # Overview + comparison charts
+│       │   │   ├── sentiment/     # Sentiment analysis
+│       │   │   ├── influencer/    # Top influencers
+│       │   │   ├── trend/         # Trending topics
+│       │   │   ├── time/          # Time-based analysis
+│       │   │   └── location/      # Geographic analysis
+│       │   ├── infrastructure/    # Data access layer
+│       │   │   ├── repositories/
+│       │   │   └── schemas/
+│       │   └── common/            # Shared utilities
+│       │
+│       ├── real-media/            # Media monitoring (coming soon)
+│       └── ...
+│
+├── docs/                          # Documentation
+│   ├── INFISICAL.md               # Secret management guide
+│   └── REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md
+│
+├── examples/                      # Legacy JS reference code
+└── test/                          # E2E tests
+```
 
-- **rate-limit/:** ระบบป้องกันการยิง API ซ้ำๆ (DDos / Spam Protection)
-
-2. src/config/ (การจัดการ Configuration) ใช้หลักการ Typed Configuration เพื่อป้องกันข้อผิดพลาดจากการตั้งค่า .env ตกหล่น:
-
-- มีการแยกไฟล์ Config ตามหมวดหมู่ เช่น database.config.ts, auth.config.ts เพื่อความสะอาดตา
-
-- มี env.schema.ts สำหรับ Validate ตัวแปร Environment แบบเข้มงวดก่อน Start Server
-
-3. src/auth/ (ระบบรักษาความปลอดภัย) จัดการเรื่อง Authentication ด้วย JWT (JSON Web Token)
-
-- มี jwt-auth.guard.ts สำหรับปกป้อง Route ต่างๆ และ @Public() decorator สำหรับเปิดทางให้ Route ที่ไม่ต้อง Login
-
-4. src/modules/ (Business Logic / Products) ส่วนนี้คือ Product ย่อยต่างๆ ของระบบ แต่ละ Product จะแยกทำงานเป็นอิสระต่อกัน (Vertical Slicing):
-
-- real-listening/: แพลตฟอร์ม Social Listening ใช้รูปแบบ Sub-module pattern (เช่น แยกย่อยเป็น features/messages) มี SocialQueryBuilderService เป็นศูนย์กลางแปลง DTO เป็น MongoDB Query Pipeline
-
-- real-engagement/, real-vision/, real-smart-plus/: โมดูลสำหรับ Product อื่นๆ
-
-5. src/platform/ (Integration & Infrastructure)
-   queue/: ใช้สำหรับจัดการ Background Jobs หรือ Message Queue รองรับการประมวลผลข้อมูลปริมาณมหาศาลแบบ Asynchronous
+---
 
 ## 🛠️ Tech Stack
 
-**Framework:** NestJS (Node.js)
+| Category | Technology |
+|----------|------------|
+| **Framework** | NestJS 10 |
+| **Language** | TypeScript 5.1 |
+| **Database** | MongoDB 9 (Mongoose ODM) |
+| **Validation** | class-validator, class-transformer |
+| **Authentication** | JWT (Passport) |
+| **Documentation** | Swagger / OpenAPI |
+| **Cache** | cache-manager (in-memory / Redis-ready) |
+| **Date/Time** | Day.js |
+| **Testing** | Jest (unit + integration + e2e) |
+| **Code Quality** | ESLint, Prettier |
+| **Secrets** | Infisical (optional) |
 
-**Language:** TypeScript
+---
 
-**Database:** MongoDB (via Mongoose)
+## 🚀 Quick Start
 
-**Validation:** class-validator & class-transformer (Strict Payload Checking)
+### Prerequisites
 
-**Documentation:** Swagger / OpenAPI
+- **Node.js** 20+ (LTS recommended)
+- **MongoDB** 5.0+ (running locally or remote)
+- **npm** or **yarn**
 
-**Date Manipulation:** Day.js
-
-## 🚀 Getting Started (การรันโปรเจกต์)
-
-1. การติดตั้ง (Installation)
-
-   ```bash
-   $ npm install
-   ```
-
-2. ตั้งค่า Environment Variables
-   คัดลอกไฟล์ต้นแบบ (เช่น .env.example) ไปเป็น .env และกำหนดค่าที่จำเป็น เช่น:
-
-ข้อมูลโค้ด
-PORT=3000
-MONGO_URI=mongodb://127.0.0.1:27017/social_db
-JWT_SECRET=your_super_secret_key
-MONGO_CONNECT_DELAY=0 # กำหนดเป็น 0 ในช่วง Development เพื่อให้ Start ได้รวดเร็ว 3. การรันแอปพลิเคชัน (Running the app)
-Bash
-
-## development mode
+### Installation
 
 ```bash
-$ npm run start
+# Clone the repository
+git clone <repo-url>
+cd realone
+
+# Install dependencies
+npm install
 ```
 
-## watch mode (สำหรับตอนเขียนโค้ด - แนะนำ)
+### Environment Setup
+
+Create a `.env` file at the root:
+
+```env
+# App
+NODE_ENV=development
+APP_PORT=8082
+APP_TZ=Asia/Bangkok
+
+# Auth
+AUTH_JWT_SECRET=your-secret-key-here
+AUTH_JWT_EXPIRES_IN=1d
+
+# MongoDB
+MONGO_HOST=127.0.0.1
+MONGO_PORT=27017
+MONGO_DB=realone_dev
+MONGO_USER=
+MONGO_PASSWORD=
+```
+
+> **Tip:** Use [Infisical](./docs/INFISICAL.md) for centralized secret management across environments.
+
+### Running the Application
 
 ```bash
-$ npm run start:dev
+# Development (hot-reload)
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
+
+# With Infisical secrets
+npm run start:dev:infisical
 ```
 
-## production mode
+The API will be available at: **http://localhost:8082/api**
+
+---
+
+## 📚 API Documentation
+
+Once the server is running, access interactive API docs (Swagger UI) at:
+
+**👉 [http://localhost:8082/docs](http://localhost:8082/docs)**
+
+---
+
+## 🧪 Testing
 
 ```bash
-$ npm run start:prod
+# Unit tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:cov
+
+# E2E tests
+npm run test:e2e
 ```
 
-## 📚 API Documentation (Swagger)
+**Example test suites:**
 
-เมื่อ Start Server เสร็จสิ้น สามารถดู API Documentation และทดสอบยิง API ได้ที่:
-👉 http://localhost:{port}/api/docs (ตาม Path ที่ตั้งค่าไว้ใน main.ts)
+- ✅ `social-query-builder.service.spec.ts` – 45 test cases covering all FilterQueryDTO fields, hint logic, and MongoDB query generation (see [docs](./docs/REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md))
 
-## 🧑‍💻 Development Guidelines (ข้อตกลงในการพัฒนา)
+---
 
-- **DTO First:** ทุกครั้งที่มีการรับ Request Body หรือ Query String ต้องสร้างไฟล์ DTO พร้อมใส่ Decorator จาก class-validator และ @nestjs/swagger เสมอ
+## 🎨 Development Guidelines
 
-- **Fat Service, Skinny Controller:** Controller ควรมีหน้าที่แค่รับส่งและเชื่อมต่อข้อมูลเท่านั้น (Routing & Validation) Business Logic ทั้งหมดต้องเขียนอยู่ใน Service Layer
+### 1. DTO-First Approach
 
-- **Module Isolation:** ห้าม Feature ย่อย (เช่น messages) นำเข้า Model ของ Feature อื่นโดยตรง ให้คุยกันผ่าน Service ของ Module กลาง หรือทำ Module Exports ให้ถูกต้อง
+Every request payload must have a corresponding DTO with validation decorators:
 
-- **No .ts in Imports:** หลีกเลี่ยงการใส่นามสกุลไฟล์ .ts เมื่อทำการ import โมดูลต่างๆ เพื่อป้องกัน Error ตอน Build
+```typescript
+export class MessageFilterDTO extends PartialType(FilterQueryDTO) {
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  page?: number = 1;
 
-- **Mastering Dependency Injection (DI):** - ทีมพัฒนาต้องมีความเข้าใจในระบบ Inversion of Control (IoC) Container ของ NestJS
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  pagePer?: number = 100;
+}
+```
 
-  **ห้าม** ทำการ `new Service()` ขึ้นมาใช้เองโดยเด็ดขาด
-  ให้ใช้วิธีฉีด (Inject) ผ่าน `constructor` เสมอ เพื่อให้โค้ดเป็น Loose Coupling และสามารถทำ Mocking สำหรับ Unit Test ได้ง่าย
+### 2. Layered Architecture
+
+```
+Controller → Service → Repository → Database
+```
+
+- **Controller:** Routing, validation, HTTP concerns
+- **Service:** Business logic, orchestration
+- **Repository:** Data access, query building
+
+### 3. Dependency Injection
+
+❌ **Never** instantiate services manually:
+
+```typescript
+const service = new MyService(); // ❌ BAD
+```
+
+✅ **Always** inject via constructor:
+
+```typescript
+constructor(private readonly myService: MyService) {} // ✅ GOOD
+```
+
+### 4. Module Isolation
+
+- Each feature module should be self-contained
+- Avoid cross-feature imports; use shared modules or services
+- Export only what's needed for other modules
+
+### 5. Testing Requirements
+
+- **Unit tests** for services and utilities (aim for >80% coverage)
+- **Integration tests** for repositories
+- **E2E tests** for critical API flows
+
+### 6. Code Style
+
+```bash
+# Format code
+npm run format
+
+# Lint
+npm run lint
+```
+
+---
+
+## 🔑 Key Features & Highlights
+
+### Real Listening Module
+
+- **Unified Query Builder:** `SocialQueryBuilderService` transforms DTOs into optimized MongoDB aggregation pipelines with intelligent index hinting
+- **Feature-based Organization:** Messages, Analytics, Sentiment, Influencer, Trend, Time, Location—each with dedicated controller/service/repository
+- **Comparison Support:** Analytics and Sentiment endpoints support date-range comparison (`compareEnabled` flag) in a single request
+- **Flexible Filtering:** 20+ filter fields including keywords, channels, sentiment, tags, date ranges, advanced search, and more
+- **Type Safety:** Strict TypeScript enums and DTOs prevent runtime errors and improve DX
+
+### Core Infrastructure
+
+- **Global Rate Limiting:** Configurable per-route protection against abuse
+- **Structured Logging:** Request ID tracking across the entire request lifecycle
+- **Typed Configuration:** Joi validation ensures all required env vars are present on startup
+- **BaseRepository Pattern:** DRY MongoDB operations with built-in `maxTimeMS`, `allowDiskUse`, hints
+
+---
+
+## 📖 Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [INFISICAL.md](./docs/INFISICAL.md) | Setting up Infisical for secrets management |
+| [REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md](./docs/REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md) | Comprehensive test coverage guide |
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Real Listening: Messages, Analytics, Sentiment, Influencer, Trend, Time, Location
+- [x] Comprehensive unit tests (45+ for query builder)
+- [x] Swagger documentation
+- [x] Rate limiting & request logging
+- [ ] Real Media module migration
+- [ ] E2E test suite expansion
+- [ ] Redis caching integration
+- [ ] Queue-based background jobs
+- [ ] GraphQL gateway (future)
+
+---
+
+## 👥 Contributing
+
+This is a private project. For questions or access, contact the maintainer.
+
+---
+
+## 📄 License
+
+Proprietary. All rights reserved.
+
+---
+
+## 🙋 Support
+
+For issues or questions:
+
+- **Author:** Anan Samphan
+- **Project:** RealSmart Products
+- **Email:** anan.s@realsmart.co.th
+
+---
+
+**Built with ❤️ using NestJS**

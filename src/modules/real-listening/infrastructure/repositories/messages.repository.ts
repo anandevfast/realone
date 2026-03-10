@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 
-import { SocialMessage, SocialMessageDocument } from '../schemas/social-message.schema';
+import {
+  SocialMessage,
+  SocialMessageDocument,
+} from '../schemas/social-message.schema';
 import { BaseRepository } from 'src/core/database/base.repository';
 import {
   SocialQueryBuilderService,
@@ -25,7 +28,10 @@ export class MessagesRepository extends BaseRepository<SocialMessageDocument> {
     dto: Partial<FilterQueryDTO>,
     email?: string,
   ): Promise<SocialMessage[]> {
-    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(dto, email);
+    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(
+      dto,
+      email,
+    );
     const skip = built.skip ?? 0;
     const limit = built.limit ?? 0;
 
@@ -41,7 +47,10 @@ export class MessagesRepository extends BaseRepository<SocialMessageDocument> {
     dto: Partial<FilterQueryDTO> & { page?: number; pagePer?: number },
     email?: string,
   ): Promise<{ data: SocialMessage[]; totalCount: number; lastPage: number }> {
-    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(dto, email);
+    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(
+      dto,
+      email,
+    );
     const page = dto.page ?? 1;
     const pagePer = dto.pagePer ?? 20;
     const skip = (page - 1) * pagePer;
@@ -51,14 +60,14 @@ export class MessagesRepository extends BaseRepository<SocialMessageDocument> {
 
     // Optional: apply projection to reduce payload (disable if results are empty)
     const project = getProjectSocialMessage();
-  
+
     const pipeline: any[] = [
       ...advanceStages,
       { $match: built.match },
       { $sort: built.sort ?? { publishedAtUnix: -1 } },
       { $skip: skip },
       { $limit: pagePer },
-      { $project : project}
+      { $project: project },
     ];
     const opts = {
       hint: built.hint,
@@ -67,14 +76,21 @@ export class MessagesRepository extends BaseRepository<SocialMessageDocument> {
     const result = await this.findAggregate<SocialMessage>(pipeline, opts);
     const data = result ?? [];
     const totalCount = data.length;
-    return { data, totalCount : totalCount, lastPage: Math.ceil(totalCount / pagePer) };
+    return {
+      data,
+      totalCount: totalCount,
+      lastPage: Math.ceil(totalCount / pagePer),
+    };
   }
 
   async countByFilter(
     dto: Partial<FilterQueryDTO>,
     email?: string,
   ): Promise<number> {
-    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(dto, email);
+    const built: BuiltSocialQuery = await this.queryBuilder.buildQuery(
+      dto,
+      email,
+    );
     const advanceStages: any[] = built.advanceSearchFields
       ? [built.advanceSearchFields]
       : [];

@@ -3,7 +3,10 @@
  * Use in aggregate pipeline to limit returned fields.
  * To override at runtime, assign to projectSocialMessage or use a dedicated config service.
  */
-export const PROJECT_SOCIAL_MESSAGE: Record<string, 0 | 1 | Record<string, 0 | 1>> = {
+export const PROJECT_SOCIAL_MESSAGE: Record<
+  string,
+  0 | 1 | Record<string, 0 | 1>
+> = {
   publisheddate: 1,
   publishedAtUnix: 1,
   visibility: 1,
@@ -132,7 +135,10 @@ export const PROJECT_SOCIAL_MESSAGE: Record<string, 0 | 1 | Record<string, 0 | 1
 /** Current projection used in queries. Defaults to PROJECT_SOCIAL_MESSAGE; override via setProjectSocialMessage() if needed. */
 let currentProjection = PROJECT_SOCIAL_MESSAGE;
 
-export function getProjectSocialMessage(): Record<string, 0 | 1 | Record<string, 0 | 1>> {
+export function getProjectSocialMessage(): Record<
+  string,
+  0 | 1 | Record<string, 0 | 1>
+> {
   return currentProjection;
 }
 

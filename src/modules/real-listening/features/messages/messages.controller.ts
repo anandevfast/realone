@@ -20,7 +20,7 @@ export class MessagesController {
   @Post('query')
   @RateLimit({ limit: 15, window: 60 })
   @HttpCode(HttpStatus.OK)
-  async findMessageList(@Body() dto: MessageFilterDTO,) {
+  async findMessageList(@Body() dto: MessageFilterDTO) {
     return await this.messagesService.findMessagesList(dto);
   }
 

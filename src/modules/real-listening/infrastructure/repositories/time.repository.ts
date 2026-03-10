@@ -9,7 +9,10 @@ import {
 import { BaseRepository } from 'src/core/database/base.repository';
 import { SocialQueryBuilderService } from '../../domain/services/social-query-builder.service';
 import { TimeFilterDTO } from '../../features/time/dto/time-filter.dto';
-import { DATE_GROUP_DAILY, buildEngagementStage } from '../../common/utils/aggregation.util';
+import {
+  DATE_GROUP_DAILY,
+  buildEngagementStage,
+} from '../../common/utils/aggregation.util';
 
 export interface TimeRawItem {
   _id: { hour: number; date: string; keywords: string };
@@ -28,7 +31,9 @@ export class TimeRepository extends BaseRepository<SocialMessageDocument> {
 
   async getTimeData(dto: TimeFilterDTO): Promise<TimeRawItem[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields ? [built.advanceSearchFields] : [];
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
     const engagementStages = buildEngagementStage(dto.metric);
 
     const pipeline: any[] = [

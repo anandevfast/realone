@@ -49,21 +49,45 @@ export class InfluencerService {
 
     switch (chartName) {
       case 'UniqueAuthorsTopic':
-        return { uniqueAuthorsByKeyword: uniqueAuthorsByKeywordChart(grouped, dto, keywordNameMaps) };
+        return {
+          uniqueAuthorsByKeyword: uniqueAuthorsByKeywordChart(
+            grouped,
+            dto,
+            keywordNameMaps,
+          ),
+        };
       case 'UniqueSitesTopic':
-        return { uniqueSitesByKeyword: uniqueSitesByKeywordChart(grouped, dto, keywordNameMaps) };
+        return {
+          uniqueSitesByKeyword: uniqueSitesByKeywordChart(
+            grouped,
+            dto,
+            keywordNameMaps,
+          ),
+        };
       case 'UniqueAuthorsChannel':
-        return { uniqueAuthorsByChannel: uniqueAuthorsByChannelChart(grouped, dto) };
+        return {
+          uniqueAuthorsByChannel: uniqueAuthorsByChannelChart(grouped, dto),
+        };
       case 'UniqueSitesChannel':
-        return { uniqueSitesByChannel: uniqueSitesByChannelChart(grouped, dto) };
+        return {
+          uniqueSitesByChannel: uniqueSitesByChannelChart(grouped, dto),
+        };
       case 'UniqueAuthorsSentiment':
-        return { uniqueAuthorsBySentiment: uniqueAuthorsBySentimentChart(grouped, dto) };
+        return {
+          uniqueAuthorsBySentiment: uniqueAuthorsBySentimentChart(grouped, dto),
+        };
       case 'UniqueSitesSentiment':
-        return { uniqueSitesBySentiment: uniqueSitesBySentimentChart(grouped, dto) };
+        return {
+          uniqueSitesBySentiment: uniqueSitesBySentimentChart(grouped, dto),
+        };
       case 'UniqueAuthorsCategory':
-        return { uniqueAuthorsByCategory: uniqueAuthorsByCategoryChart(grouped, dto) };
+        return {
+          uniqueAuthorsByCategory: uniqueAuthorsByCategoryChart(grouped, dto),
+        };
       case 'UniqueSitesCategory':
-        return { uniqueSitesByCategory: uniqueSitesByCategoryChart(grouped, dto) };
+        return {
+          uniqueSitesByCategory: uniqueSitesByCategoryChart(grouped, dto),
+        };
       case 'UniqueAuthorsTags':
         return { uniqueAuthorsByTags: uniqueAuthorsByTagsChart(grouped, dto) };
       case 'UniqueSitesTags':
@@ -79,8 +103,16 @@ export class InfluencerService {
   ): any {
     const keywordNameMaps: any[] = [];
     return {
-      uniqueAuthorsByKeyword: uniqueAuthorsByKeywordChart(grouped, dto, keywordNameMaps),
-      uniqueSitesByKeyword: uniqueSitesByKeywordChart(grouped, dto, keywordNameMaps),
+      uniqueAuthorsByKeyword: uniqueAuthorsByKeywordChart(
+        grouped,
+        dto,
+        keywordNameMaps,
+      ),
+      uniqueSitesByKeyword: uniqueSitesByKeywordChart(
+        grouped,
+        dto,
+        keywordNameMaps,
+      ),
       uniqueAuthorsByChannel: uniqueAuthorsByChannelChart(grouped, dto),
       uniqueSitesByChannel: uniqueSitesByChannelChart(grouped, dto),
       uniqueAuthorsBySentiment: uniqueAuthorsBySentimentChart(grouped, dto),
@@ -97,7 +129,10 @@ export class InfluencerService {
  * Influencer Chart Processing Functions (pure, testable)
  * ===================================================================== */
 
-function getKeywordsFromInfluencer(results: InfluencerRawResult[], dto: InfluencerFilterDTO): string[] {
+function getKeywordsFromInfluencer(
+  results: InfluencerRawResult[],
+  dto: InfluencerFilterDTO,
+): string[] {
   const allKeywords = [
     ...new Set<string>(
       ([] as string[]).concat(...results.map((r) => r._id.keywords ?? [])),
@@ -256,9 +291,15 @@ export function uniqueAuthorsByCategoryChart(
   dto: InfluencerFilterDTO,
 ): any {
   const allTags = [
-    ...new Set<string>(([] as string[]).concat(...results.map((r) => (r._id as any).keyword_tag ?? []))),
+    ...new Set<string>(
+      ([] as string[]).concat(
+        ...results.map((r) => (r._id as any).keyword_tag ?? []),
+      ),
+    ),
   ];
-  const categories = [...new Set(allTags.map((t) => t?.split('_')[0]).filter(Boolean))].sort();
+  const categories = [
+    ...new Set(allTags.map((t) => t?.split('_')[0]).filter(Boolean)),
+  ].sort();
 
   const series = [
     {
@@ -266,7 +307,9 @@ export function uniqueAuthorsByCategoryChart(
       colorByPoint: true,
       data: categories.map((cat) => {
         const names = results
-          .filter((r) => (r._id as any).keyword_tag?.some((t: string) => t?.startsWith(cat)))
+          .filter((r) =>
+            (r._id as any).keyword_tag?.some((t: string) => t?.startsWith(cat)),
+          )
           .flatMap((r) => r.arr_name);
         return { name: cat, y: [...new Set(names)].length };
       }),
@@ -280,9 +323,15 @@ export function uniqueSitesByCategoryChart(
   dto: InfluencerFilterDTO,
 ): any {
   const allTags = [
-    ...new Set<string>(([] as string[]).concat(...results.map((r) => (r._id as any).keyword_tag ?? []))),
+    ...new Set<string>(
+      ([] as string[]).concat(
+        ...results.map((r) => (r._id as any).keyword_tag ?? []),
+      ),
+    ),
   ];
-  const categories = [...new Set(allTags.map((t) => t?.split('_')[0]).filter(Boolean))].sort();
+  const categories = [
+    ...new Set(allTags.map((t) => t?.split('_')[0]).filter(Boolean)),
+  ].sort();
 
   const series = [
     {
@@ -290,7 +339,9 @@ export function uniqueSitesByCategoryChart(
       colorByPoint: true,
       data: categories.map((cat) => {
         const domains = results
-          .filter((r) => (r._id as any).keyword_tag?.some((t: string) => t?.startsWith(cat)))
+          .filter((r) =>
+            (r._id as any).keyword_tag?.some((t: string) => t?.startsWith(cat)),
+          )
           .flatMap((r) => r.arr_domain);
         return { name: cat, y: [...new Set(domains)].length };
       }),
@@ -305,10 +356,12 @@ export function uniqueAuthorsByTagsChart(
 ): any {
   const allTags = [
     ...new Set<string>(
-      ([] as string[]).concat(...results.map((r) => (r._id as any).keyword_tag ?? [])),
+      ([] as string[]).concat(
+        ...results.map((r) => (r._id as any).keyword_tag ?? []),
+      ),
     ),
   ];
-  const tags = dto.tags?.length ? dto.tags as string[] : allTags.sort();
+  const tags = dto.tags?.length ? (dto.tags as string[]) : allTags.sort();
 
   const xAxis = { categories: tags, categories2: tags };
   const series = [
@@ -331,10 +384,12 @@ export function uniqueSitesByTagsChart(
 ): any {
   const allTags = [
     ...new Set<string>(
-      ([] as string[]).concat(...results.map((r) => (r._id as any).keyword_tag ?? [])),
+      ([] as string[]).concat(
+        ...results.map((r) => (r._id as any).keyword_tag ?? []),
+      ),
     ),
   ];
-  const tags = dto.tags?.length ? dto.tags as string[] : allTags.sort();
+  const tags = dto.tags?.length ? (dto.tags as string[]) : allTags.sort();
 
   const xAxis = { categories: tags, categories2: tags };
   const series = [

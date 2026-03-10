@@ -78,7 +78,9 @@ export class AnalyticsRepository extends BaseRepository<SocialMessageDocument> {
     return { series, isDailyGrouping, diffHour, startDate, endDate };
   }
 
-  async getCompareSeriesData(dto: AnalyticsFilterDTO): Promise<TimeSeriesResult> {
+  async getCompareSeriesData(
+    dto: AnalyticsFilterDTO,
+  ): Promise<TimeSeriesResult> {
     const { start, end } = buildComparePeriod(dto.startDate!, dto.endDate!);
     return this.getSeriesData(dto, start, end);
   }

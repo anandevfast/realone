@@ -63,7 +63,9 @@ export class SentimentRepository extends BaseRepository<SocialMessageDocument> {
     return { series, isDailyGrouping, diffHour, startDate, endDate };
   }
 
-  async getCompareSeriesData(dto: SentimentFilterDTO): Promise<TimeSeriesResult> {
+  async getCompareSeriesData(
+    dto: SentimentFilterDTO,
+  ): Promise<TimeSeriesResult> {
     const { start, end } = buildComparePeriod(dto.startDate!, dto.endDate!);
     return this.getSeriesData(dto, start, end);
   }
