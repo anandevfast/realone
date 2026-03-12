@@ -118,7 +118,7 @@ export class AnalyticsService {
     const percent =
       percentMode === 'change'
         ? previous !== 0
-          ? _.floor(Math.abs((current - previous) / previous), 4)
+          ? _.floor((current - previous) / previous, 4)
           : 0
         : _.floor(current / (previous || current || 1), 4);
 

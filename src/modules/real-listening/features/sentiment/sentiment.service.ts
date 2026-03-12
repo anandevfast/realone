@@ -18,6 +18,52 @@ import { Sentiment } from '../../domain/social-enum';
 export class SentimentService {
   constructor(private readonly sentimentRepository: SentimentRepository) {}
 
+  private static readonly changeConvert = (v: number): 'up' | 'down' | 'nothing' =>
+    Number.isFinite(v) ? (v > 0 ? 'up' : v < 0 ? 'down' : 'nothing') : 'nothing';
+
+  /**
+   * Wrap a flat values array (items with `y` key) with compare stats.
+   * Returns { previous, current, percent, change, values } when compare data exists,
+   * or { current, percent, values } when no compare.
+   *
+   * percentMode:
+   *   'ratio'  (default) – percent = current / base
+   *   'change'           – percent = (current - previous) / previous
+   */
+  private wrapWithCompare(
+    currentValues: any[],
+    compareValues: any[] | null,
+    sumKey: string = 'y',
+    percentMode: 'ratio' | 'change' = 'ratio',
+  ): any {
+    const current = _.sumBy(currentValues, sumKey);
+
+    if (!compareValues) {
+      return {
+        current,
+        percent: current > 0 ? _.floor(current / current, 4) : 0,
+        values: currentValues,
+      };
+    }
+
+    const previous = _.sumBy(compareValues, sumKey);
+    const diff = current - previous;
+    const percent =
+      percentMode === 'change'
+        ? previous !== 0
+          ? _.floor((current - previous) / previous, 4)
+          : 0
+        : _.floor(current / (previous || current || 1), 4);
+
+    return {
+      previous,
+      current,
+      percent,
+      change: SentimentService.changeConvert(diff),
+      values: currentValues,
+    };
+  }
+
   async query(dto: SentimentFilterDTO) {
     try {
       const [current, compareResult] = await Promise.all([
@@ -31,15 +77,23 @@ export class SentimentService {
         ? this.processChart(dto.chartName, current, dto)
         : this.processAllCharts(current, dto);
 
-      const result: any = { ...currentCharts };
-
-      if (compareResult) {
-        const compareCharts = dto.chartName
+      const compareCharts = compareResult
+        ? dto.chartName
           ? this.processChart(dto.chartName, compareResult, dto)
-          : this.processAllCharts(compareResult, dto);
-          const pickCompareChart = _.pick(compareCharts, ['shareOfSentiment','sentimentByKeyword','sentimentByChannel','sentimentByCategory','sentimentByTag']);
-        result.compare = pickCompareChart
-      }
+          : this.processAllCharts(compareResult, dto)
+        : null;
+
+      const shareOfSentiment = this.wrapWithCompare(
+        currentCharts.shareOfSentiment ?? [],
+        compareCharts?.shareOfSentiment ?? null,
+        'y',
+        'change',
+      );
+
+      const result: any = {
+        ...currentCharts,
+        shareOfSentiment,
+      };
 
       return result;
     } catch (error: any) {
@@ -135,15 +189,20 @@ export function sentShareOfSentimentChart(
   const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
 
-  const res = ALL_SENTIMENTS.map((sentiment) => {
+  const raw = ALL_SENTIMENTS.map((sentiment) => {
     const y = data
       .map((d) => (d.sentiment === sentiment ? 1 : 0) * d.count)
       .reduce((sum, v) => sum + v, 0);
     return { name: sentiment, y };
   });
 
-  const hasData = res.some((r) => r.y > 0);
-  return hasData ? res : [];
+  if (!raw.some((r) => r.y > 0)) return [];
+
+  const total = _.sumBy(raw, 'y');
+  return raw.map((r) => ({
+    ...r,
+    percent: total > 0 ? parseFloat(((r.y / total) * 100).toFixed(2)) : 0,
+  }));
 }
 
 export function sentByKeywordTopicsChart(
