@@ -5,9 +5,5 @@ import { FilterQueryDTO } from 'src/modules/real-listening/domain/filter-query.d
 export class TrendFilterDTO extends PartialType(FilterQueryDTO) {
   @IsOptional()
   @IsString()
-  metric?: string;
-
-  @IsOptional()
-  @IsString()
   chartName?: string;
 }

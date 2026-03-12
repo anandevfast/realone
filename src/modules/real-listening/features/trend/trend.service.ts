@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { TrendRepository } from '../../infrastructure/repositories/trend.repository';
 import { TrendFilterDTO } from './dto/trend-filter.dto';
+import { Metric } from '../../domain/social-enum';
 
 @Injectable()
 export class TrendService {
@@ -120,7 +121,7 @@ export function buildTypeChart(data: any[], dto: TrendFilterDTO): any {
       type: 'spline',
       data: arr_engagement,
     });
-  } else if (dto.metric === 'engagement_views') {
+  } else if (dto.metric === Metric.Engagement_View) {
     result.y_axis.push({
       name: 'engagement views',
       type: 'spline',

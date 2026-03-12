@@ -19,53 +19,137 @@ import {
   clearEmptyYData,
   clearEmptySeriesData,
 } from '../../common/utils/aggregation.util';
+import {
+  ONLINE_CHANNELS,
+  OFFLINE_CHANNELS,
+} from '../../common/constants/query-map.constant';
 
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly analyticsRepository: AnalyticsRepository) {}
 
+  private static readonly changeConvert = (v: number): 'up' | 'down' | 'nothing' =>
+    Number.isFinite(v) ? (v > 0 ? 'up' : v < 0 ? 'down' : 'nothing') : 'nothing';
+
   /**
-   * Enrich summaryChannel with message/mention and percent fields
-   * so frontend can build summaryBox without recomputing (current & compare).
+   * Group summaryChannel items into { online, offline }.
+   * When comparePrev is provided, each item gets previous/current/percent/change.
+   * When comparePrev is null, current items are returned with just current/percent.
    */
-  private addSummaryChannelPercent(charts: any): any {
-    if (!charts || !Array.isArray(charts.summaryChannel)) {
-      return charts;
-    }
+  private buildSummaryChannelGrouped(
+    currentItems: any[],
+    comparePrevItems: any[] | null,
+  ): { online: any[]; offline: any[] } {
+    const totalCurrent = _.sumBy(currentItems, 'totalMessage');
 
-    const items = charts.summaryChannel;
-    if (!items.length) {
-      return charts;
-    }
+    const enrich = (item: any): any => {
+      const current = item.totalMessage ?? 0;
+      const percent = totalCurrent > 0 ? _.floor(current / totalCurrent, 4) : 0;
 
-    const totalMessage = _.sumBy(items, 'totalMessage');
-    const totalCount = _.sumBy(items, 'totalCount');
+      if (!comparePrevItems) {
+        return {
+          channel: item.channel,
+          fullLabel: item.fullLabel,
+          current,
+          percent,
+        };
+      }
 
-    charts.summaryTotals = {
-      message: totalMessage,
-      mention: totalCount,
+      const prevItem = comparePrevItems.find(
+        (p) => p.channel === item.channel,
+      );
+      const previous = prevItem?.totalMessage ?? 0;
+      const diff = current - previous;
+      return {
+        channel: item.channel,
+        fullLabel: item.fullLabel,
+        previous,
+        current,
+        percent,
+        change: AnalyticsService.changeConvert(diff),
+      };
     };
 
-    charts.summaryChannel = items.map((item: any) => ({
-      ...item,
-      message: item.totalMessage,
-      mention: item.totalCount,
-      percentMessage:
-        totalMessage > 0 ? item.totalMessage / totalMessage : 0,
-      percentMention: totalCount > 0 ? item.totalCount / totalCount : 0,
-    }));
+    const online: any[] = [];
+    const offline: any[] = [];
 
-    return charts;
+    for (const item of currentItems) {
+      const enriched = enrich(item);
+      const key = (item.channel as string).split('-')[0];
+      if (ONLINE_CHANNELS.has(key)) {
+        online.push(enriched);
+      } else if (OFFLINE_CHANNELS.has(key)) {
+        offline.push(enriched);
+      } else {
+        online.push(enriched);
+      }
+    }
+
+    return { online, offline };
   }
 
-  /** Build meta-only payload (summaryTotals + summaryChannel with percents). */
-  private toChartMeta(charts: any): any {
-    if (!charts) return null;
+  /**
+   * Wrap a values array (keyword/channel items) with total/compare stats.
+   *   { previous, current, percent, change, values: [...] }
+   * When comparePrev is null only current/percent are included.
+   *
+   * percentMode:
+   *   'ratio'  (default) – percent = current / base  (share of base)
+   *   'change'           – percent = (current - previous) / previous
+   */
+  private wrapWithCompare(
+    currentValues: any[],
+    compareValues: any[] | null,
+    sumKey: string = 'y',
+    percentMode: 'ratio' | 'change' = 'ratio',
+  ): any {
+    const current = _.sumBy(currentValues, sumKey);
+
+    if (!compareValues) {
+      return {
+        current,
+        percent: current > 0 ? _.floor(current / current, 4) : 0,
+        values: currentValues,
+      };
+    }
+
+    const previous = _.sumBy(compareValues, sumKey);
+    const diff = current - previous;
+    const percent =
+      percentMode === 'change'
+        ? previous !== 0
+          ? _.floor(Math.abs((current - previous) / previous), 4)
+          : 0
+        : _.floor(current / (previous || current || 1), 4);
+
     return {
-      summaryTotals: charts.summaryTotals ?? null,
-      summaryChannel: charts.summaryChannel ?? null,
+      previous,
+      current,
+      percent,
+      change: AnalyticsService.changeConvert(diff),
+      values: currentValues,
     };
   }
+
+  /**
+   * Replace flat summaryChannel array with grouped { online, offline } structure.
+   * Merges compare period data when available.
+   */
+  private buildSummaryChannel(currentCharts: any, compareCharts: any | null): any {
+    if (!Array.isArray(currentCharts?.summaryChannel)) {
+      return { online: [], offline: [] };
+    }
+
+    const compareItems: any[] | null = Array.isArray(compareCharts?.summaryChannel)
+      ? compareCharts.summaryChannel
+      : null;
+
+    return this.buildSummaryChannelGrouped(
+      currentCharts.summaryChannel,
+      compareItems,
+    );
+  }
+
 
   async query(dto: AnalyticsFilterDTO) {
     try {
@@ -80,33 +164,38 @@ export class AnalyticsService {
         ? this.processChart(dto.chartName, current, dto)
         : this.processAllCharts(current, dto);
 
-      const enrichedCurrent = this.addSummaryChannelPercent({
-        ...currentCharts,
-      });
-
-      if (dto?.metaOnly) {
-        const result: any = {
-          chartMeta: this.toChartMeta(enrichedCurrent),
-        };
-        if (compareResult) {
-          const compareCharts = dto.chartName
-            ? this.processChart(dto.chartName, compareResult, dto)
-            : this.processAllCharts(compareResult, dto);
-          const enrichedCompare = this.addSummaryChannelPercent(compareCharts);
-          result.compareMeta = this.toChartMeta(enrichedCompare);
-        }
-        return result;
-      }
-
-      const result: any = { ...enrichedCurrent };
-
-      if (compareResult) {
-        const compareCharts = dto.chartName
+      const compareCharts = compareResult
+        ? dto.chartName
           ? this.processChart(dto.chartName, compareResult, dto)
-          : this.processAllCharts(compareResult, dto);
-        const pickCompareChart = _.pick(compareCharts, ['summaryChannel','summaryTotals']);
-        result.compare = this.addSummaryChannelPercent(pickCompareChart);
-      }
+          : this.processAllCharts(compareResult, dto)
+        : null;
+
+      const summaryChannel = this.buildSummaryChannel(currentCharts, compareCharts);
+
+      const shareOfKeywordTopic = this.wrapWithCompare(
+        currentCharts.shareOfKeywordTopic ?? [],
+        compareCharts?.shareOfKeywordTopic ?? null,
+      );
+
+      const shareOfChannel = this.wrapWithCompare(
+        currentCharts.shareOfChannel ?? [],
+        compareCharts?.shareOfChannel ?? null,
+      );
+
+      const shareOfSentiment = this.wrapWithCompare(
+        currentCharts.shareOfSentiment ?? [],
+        compareCharts?.shareOfSentiment ?? null,
+        'y',
+        'change',
+      );
+
+      const result: any = {
+        ...currentCharts,
+        shareOfKeywordTopic,
+        shareOfChannel,
+        shareOfSentiment,
+        summaryChannel,
+      };
 
       return result;
     } catch (error: any) {
@@ -602,7 +691,7 @@ export function shareOfSentimentChart(
   const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
   const data = flattenSeriesData(queryResults);
 
-  const res = ALL_SENTIMENTS.map((sentiment) => {
+  const raw = ALL_SENTIMENTS.map((sentiment) => {
     const y = data
       .map((d) => {
         const sm =
@@ -613,7 +702,13 @@ export function shareOfSentimentChart(
     return { name: sentiment, y };
   });
 
-  return res.every((r) => r.y === 0) ? [] : res;
+  if (raw.every((r) => r.y === 0)) return [];
+
+  const total = _.sumBy(raw, 'y');
+  return raw.map((r) => ({
+    ...r,
+    percent: total > 0 ? parseFloat(((r.y / total) * 100).toFixed(2)) : 0,
+  }));
 }
 
 export function sentimentOverTimeChart(

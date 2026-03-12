@@ -2,10 +2,10 @@
 
 > **Enterprise-grade backend API** for **RealSmart Products** — a complete rewrite of the legacy Node.js/Express codebase in **NestJS**, designed for scalability, maintainability, and type safety.
 
-[![NestJS](https://img.shields.io/badge/NestJS-10.0-red?logo=nestjs)](https://nestjs.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.1-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-9.0-green?logo=mongodb)](https://www.mongodb.com/)
-[![License](https://img.shields.io/badge/License-Proprietary-orange)]()
+[NestJS](https://nestjs.com/)
+[TypeScript](https://www.typescriptlang.org/)
+[MongoDB](https://www.mongodb.com/)
+[License]()
 
 ---
 
@@ -114,19 +114,21 @@ realone/
 
 ## 🛠️ Tech Stack
 
-| Category | Technology |
-|----------|------------|
-| **Framework** | NestJS 10 |
-| **Language** | TypeScript 5.1 |
-| **Database** | MongoDB 9 (Mongoose ODM) |
-| **Validation** | class-validator, class-transformer |
-| **Authentication** | JWT (Passport) |
-| **Documentation** | Swagger / OpenAPI |
-| **Cache** | cache-manager (in-memory / Redis-ready) |
-| **Date/Time** | Day.js |
-| **Testing** | Jest (unit + integration + e2e) |
-| **Code Quality** | ESLint, Prettier |
-| **Secrets** | Infisical (optional) |
+
+| Category           | Technology                              |
+| ------------------ | --------------------------------------- |
+| **Framework**      | NestJS 10                               |
+| **Language**       | TypeScript 5.1                          |
+| **Database**       | MongoDB 9 (Mongoose ODM)                |
+| **Validation**     | class-validator, class-transformer      |
+| **Authentication** | JWT (Passport)                          |
+| **Documentation**  | Swagger / OpenAPI                       |
+| **Cache**          | cache-manager (in-memory / Redis-ready) |
+| **Date/Time**      | Day.js                                  |
+| **Testing**        | Jest (unit + integration + e2e)         |
+| **Code Quality**   | ESLint, Prettier                        |
+| **Secrets**        | Infisical (optional)                    |
+
 
 ---
 
@@ -187,7 +189,7 @@ npm run start:prod
 npm run start:dev:infisical
 ```
 
-The API will be available at: **http://localhost:8082/api**
+The API will be available at: **[http://localhost:8082/api](http://localhost:8082/api)**
 
 ---
 
@@ -310,24 +312,26 @@ npm run lint
 
 ## 📖 Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [INFISICAL.md](./docs/INFISICAL.md) | Setting up Infisical for secrets management |
-| [REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md](./docs/REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md) | Comprehensive test coverage guide |
+
+| Doc                                                                                                 | Description                                 |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| [INFISICAL.md](./docs/INFISICAL.md)                                                                 | Setting up Infisical for secrets management |
+| [REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md](./docs/REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md) | Comprehensive test coverage guide           |
+
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Real Listening: Messages, Analytics, Sentiment, Influencer, Trend, Time, Location
-- [x] Comprehensive unit tests (45+ for query builder)
-- [x] Swagger documentation
-- [x] Rate limiting & request logging
-- [ ] Real Media module migration
-- [ ] E2E test suite expansion
-- [ ] Redis caching integration
-- [ ] Queue-based background jobs
-- [ ] GraphQL gateway (future)
+- Real Listening: Messages, Analytics, Sentiment, Influencer, Trend, Time, Location
+- Comprehensive unit tests (45+ for query builder)
+- Swagger documentation
+- Rate limiting & request logging
+- Real Media module migration
+- E2E test suite expansion
+- Redis caching integration
+- Queue-based background jobs
+- GraphQL gateway (future)
 
 ---
 
@@ -349,7 +353,7 @@ For issues or questions:
 
 - **Author:** Anan Samphan
 - **Project:** RealSmart Products
-- **Email:** anan.s@realsmart.co.th
+- **Email:** [anan.s@realsmart.co.th](mailto:anan.s@realsmart.co.th)
 
 ---
 

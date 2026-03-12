@@ -26,7 +26,7 @@ import {
   type MongoIndexSpec,
 } from '../../common/utils/query-builder.util';
 import { FilterQueryDTO } from '../filter-query.dto';
-import { FavoriteMessage } from '../social-enum';
+import { ConditionTemplate, FavoriteMessage } from '../social-enum';
 import type { SocialMessageDocument } from '../../infrastructure/schemas/social-message.schema';
 import { SocialMessage } from '../../infrastructure/schemas/social-message.schema';
 
@@ -178,19 +178,19 @@ export class SocialQueryBuilderService {
       keywordClause = noKeyword ? { $in: [] } : { $in: input.keywords };
     }
 
-    if ((input as any).monitor && Object.keys((input as any).monitor).length) {
-      const condition = (input as any).condition || 'or';
-      const monitorOrList = buildMonitorOr((input as any).monitor, '$in');
+    if (input.monitor && Object.keys(input.monitor).length) {
+      const condition = (input.condition as unknown as string) || ConditionTemplate.OR;
+      const monitorOrList = buildMonitorOr(input.monitor as Record<string, string[]>, '$in');
 
       if (monitorOrList.length) {
         const keywordPart = keywordClause ? { keywords: keywordClause } : null;
-        if (condition === 'and') {
+        if (condition === ConditionTemplate.AND) {
           result.match.$and = [
             ...(result.match.$and || []),
             keywordPart,
             { $or: monitorOrList },
           ].filter(Boolean);
-        } else if (condition === 'keywordAndNotMonitor') {
+        } else if (condition === ConditionTemplate.AND_NOT) {
           result.match.$and = [
             ...(result.match.$and || []),
             keywordPart,
@@ -207,9 +207,9 @@ export class SocialQueryBuilderService {
     /* ===============================
      * KEYWORD ONLY (no monitor)
      * =============================== */
-    if (_.isEmpty((input as any).monitor) && keywordClause) {
-      const condition = (input as any).condition || 'or';
-      if (condition === 'and') {
+    if (_.isEmpty(input.monitor) && keywordClause) {
+      const condition = (input.condition as unknown as string) || ConditionTemplate.OR;
+      if (condition === ConditionTemplate.AND) {
         result.match.$and = [
           ...(result.match.$and || []),
           { keywords: keywordClause },
@@ -544,12 +544,13 @@ export class SocialQueryBuilderService {
       : buildMongoHint(
           {
             sortBy: input.sortBy,
-            monitor: (input as any).monitor,
+            monitor: input.monitor as Record<string, string[]> | undefined,
             keywords: input.keywords,
           },
           dbIndexes,
           true,
         );
+
     // console.log('result',JSON.stringify(result, null, 2));
     return result;
   }

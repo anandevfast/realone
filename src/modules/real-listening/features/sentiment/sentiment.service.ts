@@ -11,9 +11,8 @@ import {
   getChannelsFromData,
   getTagsFromData,
   lookupKeywordName,
-  clearEmptyYData,
-  clearEmptySeriesData,
 } from '../../common/utils/aggregation.util';
+import { Sentiment } from '../../domain/social-enum';
 
 @Injectable()
 export class SentimentService {
@@ -35,9 +34,11 @@ export class SentimentService {
       const result: any = { ...currentCharts };
 
       if (compareResult) {
-        result.compare = dto.chartName
+        const compareCharts = dto.chartName
           ? this.processChart(dto.chartName, compareResult, dto)
           : this.processAllCharts(compareResult, dto);
+          const pickCompareChart = _.pick(compareCharts, ['shareOfSentiment','sentimentByKeyword','sentimentByChannel','sentimentByCategory','sentimentByTag']);
+        result.compare = pickCompareChart
       }
 
       return result;
@@ -131,7 +132,7 @@ export function sentShareOfSentimentChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any[] {
-  const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
+  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
 
   const res = ALL_SENTIMENTS.map((sentiment) => {
@@ -150,7 +151,7 @@ export function sentByKeywordTopicsChart(
   dto: SentimentFilterDTO,
   keywordNameMaps: any[],
 ): any {
-  const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
+  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
   let keywords = getKeywordsFromData(data, dto.keywords);
   keywords = keywords.filter((k) => k !== 'Monitor');
@@ -199,10 +200,10 @@ export function sentOverTimeChart(
       (d.keyword ?? []).includes(keyword),
     );
     const pos = items
-      .filter((d: any) => d.sentiment === 'positive')
+      .filter((d: any) => d.sentiment === Sentiment.POSITIVE)
       .reduce((s: number, d: any) => s + d.count, 0);
     const neg = items
-      .filter((d: any) => d.sentiment === 'negative')
+      .filter((d: any) => d.sentiment === Sentiment.NEGATIVE)
       .reduce((s: number, d: any) => s + d.count, 0);
     return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
   };
@@ -256,7 +257,7 @@ export function sentByChannelChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
+  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
   const channels = getChannelsFromData(data, dto.channel);
 
@@ -277,7 +278,7 @@ export function sentByCategoryChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
+  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
   const categories = [
@@ -301,7 +302,7 @@ export function sentByTagChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = ['positive', 'neutral', 'negative'];
+  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
 
@@ -338,10 +339,10 @@ export function netSentimentChart(
       data: keywords.map((keyword) => {
         const items = data.filter((d) => (d.keyword ?? []).includes(keyword));
         const pos = items
-          .filter((d) => d.sentiment === 'positive')
+          .filter((d) => d.sentiment === Sentiment.POSITIVE)
           .reduce((s, d) => s + d.count, 0);
         const neg = items
-          .filter((d) => d.sentiment === 'negative')
+          .filter((d) => d.sentiment === Sentiment.NEGATIVE)
           .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),
@@ -369,10 +370,10 @@ export function categoryNetSentimentChart(
           (d.tags ?? []).some((t: string) => t?.startsWith(cat)),
         );
         const pos = items
-          .filter((d) => d.sentiment === 'positive')
+          .filter((d) => d.sentiment === Sentiment.POSITIVE)
           .reduce((s, d) => s + d.count, 0);
         const neg = items
-          .filter((d) => d.sentiment === 'negative')
+          .filter((d) => d.sentiment === Sentiment.NEGATIVE)
           .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),
@@ -395,10 +396,10 @@ export function tagNetSentimentChart(
       data: tags.map((tag) => {
         const items = data.filter((d) => (d.tags ?? []).includes(tag));
         const pos = items
-          .filter((d) => d.sentiment === 'positive')
+          .filter((d) => d.sentiment === Sentiment.POSITIVE)
           .reduce((s, d) => s + d.count, 0);
         const neg = items
-          .filter((d) => d.sentiment === 'negative')
+          .filter((d) => d.sentiment === Sentiment.NEGATIVE)
           .reduce((s, d) => s + d.count, 0);
         return parseFloat((((pos - neg) / (pos + neg || 1)) * 100).toFixed(2));
       }),

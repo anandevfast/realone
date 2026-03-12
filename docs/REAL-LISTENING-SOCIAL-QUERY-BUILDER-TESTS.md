@@ -54,7 +54,7 @@ npx jest social-query-builder.service.spec.ts --no-coverage
 | **favoriteMessage** | `["favorite"]` + email; no user favorites in mock | `match._id` not set (no fav data) |
 | **email** | Used only for favorite path | No direct match field; affects favorite logic only |
 
-**Note:** `metric`, `resultBy` from FilterQueryDTO are not used inside `buildQuery` (they are used elsewhere, e.g. analytics). Tests do not assert on them.
+**Note:** `metric` and `resultBy` from FilterQueryDTO are not used inside `buildQuery`. `metric` is handled by `buildEngagementStage()` in `aggregation.util.ts` and applied directly in `AnalyticsRepository`. Tests do not assert on them.
 
 ---
 
@@ -82,6 +82,31 @@ The service compares `condition` to the strings `'and'` and `'keywordAndNotMonit
 
 ---
 
+## metric → buildEngagementStage
+
+The `metric` field (enum `Metric`) is **not** processed inside `buildQuery()`. It is handled by `buildEngagementStage(metric?)` in `aggregation.util.ts`, which is called directly by `AnalyticsRepository.getSeriesData()` to inject a `$addFields` stage into the MongoDB pipeline.
+
+| `metric` value | `$addFields` stage injected |
+|----------------|-----------------------------|
+| `undefined`, `message`, `mention`, `view` | `{ engagement: 1 }` |
+| `engagement` | `{ engagement: { $ifNull: ['$totalEngagement', 0] } }` |
+| `engagement_view` | `{ engagement: { $add: [{ $ifNull: ['$totalEngagement', 0] }, { $ifNull: ['$totalView', 0] }] } }` |
+
+---
+
+## MonitorDTO – typed object tests
+
+After `monitor` was migrated from `(input as any).monitor` to a typed `MonitorDTO` field, 4 additional test cases were added to cover the new typed path.
+
+| Test case | Input | Expected |
+|-----------|-------|----------|
+| Multi-platform MonitorDTO (no condition) | `monitor: { pantip, instagram, facebook }` | `match.$or` contains inner `$or` with account_ids for all 3 platforms |
+| MonitorDTO with `condition: 'and'` | `monitor: { youtube }` + `keywords` | `match.$and` contains a `$or` for monitor accounts |
+| MonitorDTO with all-empty arrays | `monitor: { twitter: [], facebook: [] }` + `keywords` | No monitor `$or` inside `match.$or` (keyword-only branch) |
+| No monitor, no keywords | base DTO only | `match.$or` and `match.$and` are both undefined |
+
+---
+
 ## Total tests
 
-**45** test cases covering date range, sort, code, channel, keywords, tags, ex_tags, sentiment, statusMessage, visibility, speakerType, intent, filterBy, postFormat, trackingPost, detectedBy, language, arr_id, monitor+condition, hint rules, rawContent.save_import, favoriteMessage (no fav data), and advanceSearch (word include/exclude).
+**49** test cases covering date range, sort, code, channel, keywords, tags, ex_tags, sentiment, statusMessage, visibility, speakerType, intent, filterBy, postFormat, trackingPost, detectedBy, language, arr_id, monitor+condition, MonitorDTO typed object (multi-platform, condition and, empty arrays, no monitor), hint rules, rawContent.save_import, favoriteMessage (no fav data), and advanceSearch (word include/exclude).

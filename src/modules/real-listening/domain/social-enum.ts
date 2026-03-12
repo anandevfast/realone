@@ -100,3 +100,11 @@ export enum SortBy {
   MOST_FOLLOWERS = 'follower-desc',
   LESS_FOLLOWERS = 'follower-asc',
 }
+
+export enum Metric {
+  Message = 'message',
+  Mention = 'mention',
+  Engagement = 'engagement',
+  Engagement_View = 'engagement_view',
+  View = 'view',
+}

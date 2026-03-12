@@ -438,6 +438,62 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
     expect(result.match.$and.some((c: any) => c.$nor)).toBe(true);
   });
 
+  // ---------- MonitorDTO – typed object (new DTO shape) ----------
+  it('builds $or with monitor using MonitorDTO typed object (multi-platform)', async () => {
+    const svc = buildService();
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      monitor: {
+        pantip: ['402645'],
+        instagram: ['ch3thailand', 'thairath_sport'],
+        facebook: ['146406732438'],
+      },
+    } as any);
+    expect(result.match.$or).toBeDefined();
+    const monitorOr = result.match.$or.find((c: any) => c.$or);
+    expect(monitorOr).toBeDefined();
+    const inner = monitorOr.$or as any[];
+    const platforms = inner.map((c: any) => c.account_ids.$in).flat();
+    expect(platforms).toContain('402645');
+    expect(platforms).toContain('ch3thailand');
+    expect(platforms).toContain('146406732438');
+  });
+
+  it('builds $and with monitor when condition is "and"', async () => {
+    const svc = buildService();
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      monitor: { youtube: ['UCXUVnTEsLZBim_WlWxBvEwA'] },
+      keywords: ['kw1'],
+      condition: 'and' as any,
+    } as any);
+    expect(result.match.$and).toBeDefined();
+    expect(result.match.$and.some((c: any) => c.$or)).toBe(true);
+  });
+
+  it('does not set monitor $or when monitor object has empty arrays', async () => {
+    const svc = buildService();
+    const result = await svc.buildQuery({
+      ...BASE_DTO,
+      monitor: { twitter: [], facebook: [] },
+      keywords: ['kw1'],
+    } as any);
+    // no monitor accounts → falls into keyword-only branch → $or contains only keyword part
+    if (result.match.$or) {
+      const hasMonitorOr = result.match.$or.some(
+        (c: any) => c.$or && c.$or.some((inner: any) => inner.account_ids),
+      );
+      expect(hasMonitorOr).toBe(false);
+    }
+  });
+
+  it('does not set $or or $and when monitor is undefined and no keywords', async () => {
+    const svc = buildService();
+    const result = await svc.buildQuery({ ...BASE_DTO } as any);
+    expect(result.match.$or).toBeUndefined();
+    expect(result.match.$and).toBeUndefined();
+  });
+
   // ---------- Hint logic ----------
   it('uses { _id: 1 } hint when arr_id is provided', async () => {
     const svc = buildService();
@@ -517,4 +573,5 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
     expect(result.match.advanceSearchWord).toBeDefined();
     expect(result.match.advanceSearchWord.$regex).toBeDefined();
   });
+
 });

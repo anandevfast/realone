@@ -35,34 +35,24 @@ export const CHANNEL_NORMALIZE_EXPR = {
   },
 };
 
+const METRIC_EXPRESSIONS: Record<string, any> = {
+  engagement: { $ifNull: ['$totalEngagement', 0] },
+  engagement_view: {
+    $add: [
+      { $ifNull: ['$totalEngagement', 0] },
+      { $ifNull: ['$totalView', 0] },
+    ],
+  },
+};
+
 export function buildEngagementStage(metric?: string): Record<string, any>[] {
-  const metricExpressions: Record<string, any> = {
-    mention: 1,
-    engagement: { $ifNull: ['$totalEngagement', 0] },
-    engagement_views: {
-      $add: [
-        { $ifNull: ['$totalEngagement', 0] },
-        { $ifNull: ['$totalView', 0] },
-      ],
-    },
-  };
   return [
-    { $addFields: { engagement: metricExpressions[metric ?? 'mention'] ?? 1 } },
+    { $addFields: { engagement: METRIC_EXPRESSIONS[metric ?? ''] ?? 1 } },
   ];
 }
 
 export function buildMetricExpression(metric?: string): Record<string, any> {
-  const metricExpressions: Record<string, any> = {
-    mention: 1,
-    engagement: { $ifNull: ['$totalEngagement', 0] },
-    engagement_views: {
-      $add: [
-        { $ifNull: ['$totalEngagement', 0] },
-        { $ifNull: ['$totalView', 0] },
-      ],
-    },
-  };
-  return metricExpressions[metric ?? 'mention'] ?? 1;
+  return METRIC_EXPRESSIONS[metric ?? ''] ?? 1;
 }
 
 export function buildComparePeriod(

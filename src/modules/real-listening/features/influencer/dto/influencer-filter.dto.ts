@@ -5,10 +5,6 @@ import { FilterQueryDTO } from 'src/modules/real-listening/domain/filter-query.d
 export class InfluencerFilterDTO extends PartialType(FilterQueryDTO) {
   @IsOptional()
   @IsString()
-  metric?: string;
-
-  @IsOptional()
-  @IsString()
   chartName?: string;
 
   @IsOptional()

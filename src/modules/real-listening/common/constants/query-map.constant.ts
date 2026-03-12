@@ -76,6 +76,26 @@ export const LANGUAGE_SEARCH_FIELDS = [
   'center_data.message',
 ];
 
+export const ONLINE_CHANNELS = new Set([
+  'facebook',
+  'facebookgroup',
+  'twitter',
+  'tiktok',
+  'youtube',
+  'instagram',
+  'pantip',
+  'blockdit',
+  'website',
+  'webboard',
+]);
+
+export const OFFLINE_CHANNELS = new Set([
+  'newspaper',
+  'magazine',
+  'radio',
+  'television',
+]);
+
 export const SIMPLE_IN_FIELDS = [
   'sentiments',
   'source',

@@ -24,6 +24,7 @@ import {
   TrackingPost,
   Visibility,
   AdvanceSearchOperator,
+  Metric,
 } from './social-enum';
 
 export class IncludeExcludeDTO {
@@ -44,6 +45,73 @@ export class RangeConditionDTO {
 
   @IsNumber()
   value: number;
+}
+
+export class MonitorDTO {
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  facebook?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  twitter?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tiktok?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  youtube?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instagram?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  pantip?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  blockdit?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  website?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  webboard?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  newspaper?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  magazine?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  radio?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  television?: string[];
 }
 
 export class AdvanceSearchDTO {
@@ -99,7 +167,7 @@ export class FilterQueryDTO {
   tags: string[];
 
   @IsOptional()
-  @IsString()
+  @IsEnum(Metric)
   metric: string;
 
   @IsEnum(SortBy)
@@ -165,6 +233,11 @@ export class FilterQueryDTO {
   @IsArray()
   @IsEnum(AiDetect, { each: true })
   detectedBy: AiDetect[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MonitorDTO)
+  monitor?: MonitorDTO;
 
   @IsOptional()
   @ValidateNested()
