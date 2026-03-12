@@ -20,6 +20,7 @@ import { LoggingInterceptor } from './core/interceptors/logging.interceptor';
 import { RealMediaModule } from './modules/real-media/real-media.module';
 import { RealListeningModule } from './modules/real-listening/real-listening.module';
 import { MongoModule } from './core/database/mongo.module';
+import { SchedulerModule } from './core/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MongoModule } from './core/database/mongo.module';
     }),
     RateLimitModule,
     MongoModule,
+    SchedulerModule,
     RealMediaModule,
     RealListeningModule,
   ],
