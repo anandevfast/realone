@@ -28,6 +28,7 @@ import {
   Metric,
 } from './social-enum';
 import { OmitType, PartialType } from '@nestjs/swagger';
+import { IsStartBeforeEnd } from 'src/common/validators/is-start-before-end.decorator';
 
 export class IncludeExcludeDTO {
   @IsOptional()
@@ -144,7 +145,6 @@ export class AdvanceSearchDTO {
 }
 
 
-
 export class FilterQueryDTO {
   @IsDateString()
   @IsNotEmpty()
@@ -249,6 +249,11 @@ export class FilterQueryDTO {
   advanceSearch?: AdvanceSearchDTO;
 }
 
+
+
+@IsStartBeforeEnd('startDate', 'endDate', {
+  message: 'startDate must be before or equal to endDate',
+})
 export class FilterRequiredDTO extends PartialType(
   OmitType(FilterQueryDTO, ['startDate', 'endDate','condition','email'] as const),
 ) {
