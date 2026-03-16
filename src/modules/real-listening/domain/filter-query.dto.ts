@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsDateString,
+  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -26,6 +27,7 @@ import {
   AdvanceSearchOperator,
   Metric,
 } from './social-enum';
+import { OmitType, PartialType } from '@nestjs/swagger';
 
 export class IncludeExcludeDTO {
   @IsOptional()
@@ -141,6 +143,8 @@ export class AdvanceSearchDTO {
   views?: RangeConditionDTO;
 }
 
+
+
 export class FilterQueryDTO {
   @IsDateString()
   @IsNotEmpty()
@@ -174,7 +178,7 @@ export class FilterQueryDTO {
   sortBy: SortBy;
 
   @IsEnum(ConditionTemplate)
-  condition: ConditionTemplate[];
+  condition: ConditionTemplate;
 
   @IsOptional()
   @IsArray()
@@ -243,4 +247,23 @@ export class FilterQueryDTO {
   @ValidateNested()
   @Type(() => AdvanceSearchDTO)
   advanceSearch?: AdvanceSearchDTO;
+}
+
+export class FilterRequiredDTO extends PartialType(
+  OmitType(FilterQueryDTO, ['startDate', 'endDate','condition','email'] as const),
+) {
+  @IsNotEmpty()
+  @IsDateString()
+  startDate: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  endDate: string;
+
+  @IsEnum(ConditionTemplate)
+  condition: ConditionTemplate;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 }

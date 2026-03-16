@@ -1,9 +1,8 @@
-import { IsDefined, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsDefined, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OmitType, PartialType } from '@nestjs/swagger';
-import { FilterQueryDTO } from 'src/modules/real-listening/domain/filter-query.dto';
+import {  FilterRequiredDTO } from 'src/modules/real-listening/domain/filter-query.dto';
 
-export class MessageFilterDTO extends PartialType(FilterQueryDTO) {
+export class MessageFilterDTO extends FilterRequiredDTO {
   @IsDefined()
   @IsNumber()
   @Min(1)

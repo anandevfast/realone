@@ -1,18 +1,7 @@
-import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { OmitType, PartialType } from '@nestjs/swagger';
-import { FilterQueryDTO } from 'src/modules/real-listening/domain/filter-query.dto';
+import { IsBoolean,IsOptional, IsString } from 'class-validator';
+import {  FilterRequiredDTO } from 'src/modules/real-listening/domain/filter-query.dto';
 
-export class AnalyticsFilterDTO extends PartialType(
-  OmitType(FilterQueryDTO, ['startDate', 'endDate'] as const),
-) {
-  @IsNotEmpty()
-  @IsDateString()
-  startDate: string;
-
-  @IsNotEmpty()
-  @IsDateString()
-  endDate: string;
-
+export class AnalyticsFilterDTO extends FilterRequiredDTO {
   @IsOptional()
   @IsString()
   chartName?: string;

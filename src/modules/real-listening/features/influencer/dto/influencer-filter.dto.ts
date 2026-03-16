@@ -1,8 +1,7 @@
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
-import { PartialType } from '@nestjs/swagger';
-import { FilterQueryDTO } from 'src/modules/real-listening/domain/filter-query.dto';
+import {  FilterRequiredDTO } from 'src/modules/real-listening/domain/filter-query.dto';
 
-export class InfluencerFilterDTO extends PartialType(FilterQueryDTO) {
+export class InfluencerFilterDTO extends FilterRequiredDTO {
   @IsOptional()
   @IsString()
   chartName?: string;
