@@ -21,6 +21,106 @@ export const KEYWORDS_NO_KEYWORD_COND = {
   $cond: [{ $eq: ['$keywords', []] }, ['No Keyword'], '$keywords'],
 };
 
+export const PIC_PROFILE_COND = {
+  $ifNull: [
+    '$content.from.picture',
+    {
+      $ifNull: [
+        '$content.user.profile_image_url_https',
+        {
+          $ifNull: [
+            '$content.channelImageURL',
+            {
+              $ifNull: [
+                '$content.from.profile_pic',
+                {
+                  $ifNull: ['$content.from.profile_pic', '$content.author_img'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+export const SUB_URL_COND = {
+  $cond: {
+    if: { $or: [{ $regexMatch: { input: '$channel', regex: 'website*' } }, { $regexMatch: { input: '$channel', regex: 'webboard*' } }] },
+    then: '$domain',
+    else: {
+      $ifNull: [
+        {
+          $concat: [
+            'https://',
+            {
+              $replaceOne: {
+                input: {
+                  $arrayElemAt: [
+                    {
+                      $split: ['$channel', '-'],
+                    },
+                    0,
+                  ],
+                },
+                find: 'group',
+                replacement: '',
+              },
+            },
+            '.com/',
+            '$content.from.id',
+          ],
+        },
+        {
+          $ifNull: [
+            {
+              $concat: ['https://x.com/', '$content.user.screen_name'],
+            },
+            {
+              $ifNull: [
+                {
+                  $concat: [
+                    'https://pantip.com/profile/',
+                    {
+                      $convert: {
+                        input: '$content.uid',
+                        to: 'string',
+                      },
+                    },
+                  ],
+                },
+                {
+                  $ifNull: [
+                    {
+                      $concat: ['https://www.youtube.com/channel/', '$content.snippet.channelId'],
+                    },
+                    {
+                      $ifNull: [
+                        {
+                          $concat: ['https://www.instagram.com/', '$content.author'],
+                        },
+                        {
+                          $ifNull: [
+                            {
+                              $concat: ['https://www.tiktok.com/', '$content.pageName'],
+                            },
+                            '$domain',
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+}
+
 export const CHANNEL_NORMALIZE_EXPR = {
   $cond: {
     if: { $eq: ['$channel', 'youtube'] },

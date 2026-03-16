@@ -7,8 +7,6 @@ import {
 } from '../../infrastructure/repositories/influencer.repository';
 import { InfluencerFilterDTO } from './dto/influencer-filter.dto';
 import {
-  getChannelsFromData,
-  getTagsFromData,
   lookupKeywordName,
   clearEmptySeriesData,
 } from '../../common/utils/aggregation.util';
@@ -17,6 +15,39 @@ import {
 export class InfluencerService {
   constructor(private readonly influencerRepository: InfluencerRepository) {}
 
+  private buildTopInfluencer(raw: any[]) {
+    const ordered = _.orderBy(
+      raw,
+      ['engagement', 'follower', 'post'],
+      ['desc', 'desc', 'desc'],
+    );
+
+    const hasNull = ordered.some((o) => String(o._id) === 'null');
+
+    let uniqueAuthor = ordered.length;
+    if (hasNull) uniqueAuthor -= 1;
+
+    const uniqueSite = _.uniqBy(ordered, 'domain').length;
+    const mention = _.sumBy(ordered, 'post');
+
+    const averageMentionAuthor =
+      uniqueAuthor > 0 ? _.round(mention / uniqueAuthor, 2) : 0;
+    const averageMentionSite =
+      uniqueSite > 0 ? _.round(mention / uniqueSite, 2) : 0;
+
+    const values = ordered
+      .filter((o) => String(o._id) !== 'null')
+      .slice(0, 100);
+
+    return {
+      uniqueAuthor,
+      uniqueSite,
+      averageMentionAuthor,
+      averageMentionSite,
+      values,
+    };
+  }
+
   async query(dto: InfluencerFilterDTO) {
     try {
       const [grouped, topInfluencer] = await Promise.all([
@@ -24,16 +55,18 @@ export class InfluencerService {
         this.influencerRepository.getTopInfluencer(dto),
       ]);
 
+      const topInfluencerSummary = this.buildTopInfluencer(topInfluencer);
+
       if (dto.chartName) {
         return {
           ...this.processChart(dto.chartName, grouped, dto),
-          topInfluencer,
+          topInfluencer: topInfluencerSummary,
         };
       }
 
       return {
         ...this.processAllCharts(grouped, dto),
-        topInfluencer,
+        topInfluencer: topInfluencerSummary,
       };
     } catch (error: any) {
       throw new BadRequestException([error?.message ?? String(error)]);

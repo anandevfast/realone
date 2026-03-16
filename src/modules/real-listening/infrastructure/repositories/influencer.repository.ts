@@ -12,6 +12,8 @@ import { InfluencerFilterDTO } from '../../features/influencer/dto/influencer-fi
 import {
   SENTIMENT_COND,
   DATE_GROUP_DAILY,
+  PIC_PROFILE_COND,
+  SUB_URL_COND,
 } from '../../common/utils/aggregation.util';
 
 export interface InfluencerRawResult {
@@ -109,52 +111,112 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
       ...advanceStages,
       { $match: built.match },
       {
-        $group: {
+        // Step 1: project author-level fields (mirror legacy JS getTopInfluencer)
+        $project: {
           _id: {
-            name: {
-              $ifNull: [
-                '$content.from.name',
-                {
-                  $ifNull: [
-                    '$content.user.name',
-                    { $ifNull: ['$content.author', '$content.username'] },
-                  ],
-                },
-              ],
-            },
-            domain: '$domain',
-            channel: { $arrayElemAt: [{ $split: ['$channel', '-'] }, 0] },
-          },
-          totalEngagement: { $sum: { $ifNull: ['$totalEngagement', 0] } },
-          totalView: { $sum: { $ifNull: ['$totalView', 0] } },
-          mention: { $sum: 1 },
-          follower: { $max: '$follower' },
-        },
-      },
-      {
-        $addFields: {
-          score: {
-            $add: [
-              { $multiply: ['$totalEngagement', 0.4] },
-              { $multiply: ['$mention', 0.3] },
-              { $multiply: [{ $ifNull: ['$follower', 0] }, 0.3] },
+            $ifNull: [
+              '$content.from.id',
+              {
+                $ifNull: [
+                  '$content.user.id_str',
+                  {
+                    $ifNull: [
+                      '$content.uid',
+                      {
+                        $ifNull: [
+                          '$content.pageName',
+                          { $ifNull: ['$content.uid', '$content.author_id'] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
             ],
           },
+          channel: '$channel',
+          domain: '$domain',
+          name: {
+            $ifNull: [
+              '$content.from.name',
+              {
+                $ifNull: [
+                  '$content.user.name',
+                  {
+                    $ifNull: [
+                      '$content.user.username',
+                      {
+                        $ifNull: [
+                          '$content.snippet.channelTitle',
+                          { $ifNull: ['$content.username', '$content.author'] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          pic_profile: PIC_PROFILE_COND,
+          follower: {
+            $ifNull: [
+              '$follower',
+              {
+                $ifNull: [
+                  '$content.follower',
+                  {
+                    $ifNull: [
+                      '$content.from.followers_count',
+                      {
+                        $ifNull: [
+                          '$content.user.followers_count',
+                          {
+                            $ifNull: [
+                              '$content.followers',
+                              {
+                                $ifNull: [
+                                  '$content.user.edge_followed_by',
+                                  0,
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          subUrl: SUB_URL_COND,
+          engagement: { $ifNull: ['$totalEngagement', 0] },
         },
       },
-      { $sort: { score: -1 } },
-      { $limit: 50 },
       {
-        $project: {
-          _id: 0,
-          name: '$_id.name',
-          domain: '$_id.domain',
-          channel: '$_id.channel',
-          totalEngagement: 1,
-          totalView: 1,
-          mention: 1,
-          follower: 1,
-          score: 1,
+        // filter out empty author id
+        $match: {
+          _id: { $ne: '' },
+        },
+      },
+      {
+        // group by author id to aggregate posts and engagement per author
+        $group: {
+          _id: '$_id',
+          channel: { $first: '$channel' },
+          name: { $first: '$name' },
+          pic_profile: { $first: '$pic_profile' },
+          follower: { $first: '$follower' },
+          subUrl: { $first: '$subUrl' },
+          post: { $sum: 1 },
+          engagement: { $sum: '$engagement' },
+          domain: { $first: '$domain' },
+        },
+      },
+      {
+        // filter out null names
+        $match: {
+          name: { $ne: null },
         },
       },
     ];

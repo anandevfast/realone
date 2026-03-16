@@ -69,7 +69,6 @@ export class AnalyticsRepository extends BaseRepository<SocialMessageDocument> {
     const pipeline: any[] = isDailyGrouping
       ? this.buildDailyPipeline(advanceStages, match, engagementStages)
       : this.buildHourlyPipeline(advanceStages, match, engagementStages);
-    console.log('pipeline',JSON.stringify(pipeline, null, 2));
     const series = await this.findAggregate(pipeline, {
       hint: built.hint,
       maxTimeMS: AGGREGATE_MAX_TIME_MS,
