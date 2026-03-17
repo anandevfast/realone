@@ -21,7 +21,8 @@ function buildService(mockData: {
       if (mockData.throwOn === 'top') {
         throw new Error('top-failed');
       }
-      return mockData.topInfluencer ?? [];
+      const rows = mockData.topInfluencer ?? [];
+      return { current: rows, compare: null };
     }),
   } as unknown as InfluencerRepository;
 
@@ -120,6 +121,30 @@ describe('InfluencerService – buildTopInfluencer summary', () => {
     expect(summary.values[0].engagement).toBe(
       Math.max(...raw.map((r) => r.engagement)),
     );
+  });
+
+  it('adds previousFollower, percentFollower, changeFollower when compareRaw is provided', () => {
+    const svc = buildService({ grouped: [], topInfluencer: [] });
+    const raw = [
+      { _id: 'a1', domain: 'd1', post: 2, engagement: 10, follower: 200 },
+      { _id: 'a2', domain: 'd2', post: 1, engagement: 5, follower: 50 },
+    ];
+    const compareRaw = [
+      { _id: 'a1', domain: 'd1', post: 1, engagement: 5, follower: 100 },
+      { _id: 'a2', domain: 'd2', post: 1, engagement: 5, follower: 100 },
+    ];
+
+    const summary = (svc as any).buildTopInfluencer(raw, compareRaw);
+
+    expect(summary.values).toHaveLength(2);
+    const v1 = summary.values.find((v: any) => v._id === 'a1');
+    const v2 = summary.values.find((v: any) => v._id === 'a2');
+    expect(v1.previousFollower).toBe(100);
+    expect(v1.percentFollower).toBe(100); // |200-100|/100 * 100
+    expect(v1.changeFollower).toBe('up');
+    expect(v2.previousFollower).toBe(100);
+    expect(v2.percentFollower).toBe(50); // |50-100|/100 * 100
+    expect(v2.changeFollower).toBe('down');
   });
 });
 

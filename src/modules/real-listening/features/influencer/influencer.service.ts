@@ -15,7 +15,16 @@ import {
 export class InfluencerService {
   constructor(private readonly influencerRepository: InfluencerRepository) {}
 
-  private buildTopInfluencer(raw: any[]) {
+  private buildTopInfluencer(
+    raw: any[],
+    compareRaw: any[] | null = null,
+  ): {
+    uniqueAuthor: number;
+    uniqueSite: number;
+    averageMentionAuthor: number;
+    averageMentionSite: number;
+    values: any[];
+  } {
     const ordered = _.orderBy(
       raw,
       ['engagement', 'follower', 'post'],
@@ -35,9 +44,40 @@ export class InfluencerService {
     const averageMentionSite =
       uniqueSite > 0 ? _.round(mention / uniqueSite, 2) : 0;
 
+    const compareById =
+      compareRaw && compareRaw.length > 0
+        ? _.keyBy(compareRaw, (o) => String(o._id))
+        : null;
+
     const values = ordered
       .filter((o) => String(o._id) !== 'null')
-      .slice(0, 100);
+      .slice(0, 100)
+      .map((item) => {
+        const row = { ...item };
+        if (compareById) {
+          const prev = compareById[String(item._id)];
+          const currentFollower = Number(item.follower) || 0;
+          const previousFollower = prev ? Number(prev.follower) || 0 : 0;
+
+          row.previousFollower = previousFollower;
+
+          if (previousFollower > 0) {
+            const diff = (currentFollower - previousFollower) / previousFollower;
+            row.percentFollower = _.round(Math.abs(diff) * 100, 2);
+            row.changeFollower =
+              currentFollower > previousFollower
+                ? 'up'
+                : currentFollower < previousFollower
+                  ? 'down'
+                  : 'nothing';
+          } else {
+            row.percentFollower = currentFollower > 0 ? 100 : 0;
+            row.changeFollower =
+              currentFollower > 0 ? 'up' : 'nothing';
+          }
+        }
+        return row;
+      });
 
     return {
       uniqueAuthor,
@@ -50,12 +90,15 @@ export class InfluencerService {
 
   async query(dto: InfluencerFilterDTO) {
     try {
-      const [grouped, topInfluencer] = await Promise.all([
+      const [grouped, topInfluencerResult] = await Promise.all([
         this.influencerRepository.getGroupedData(dto),
         this.influencerRepository.getTopInfluencer(dto),
       ]);
 
-      const topInfluencerSummary = this.buildTopInfluencer(topInfluencer);
+      const topInfluencerSummary = this.buildTopInfluencer(
+        topInfluencerResult.current,
+        topInfluencerResult.compare,
+      );
 
       if (dto.chartName) {
         return {

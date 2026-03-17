@@ -14,6 +14,7 @@ import {
   DATE_GROUP_DAILY,
   PIC_PROFILE_COND,
   SUB_URL_COND,
+  buildComparePeriod,
 } from '../../common/utils/aggregation.util';
 
 export interface InfluencerRawResult {
@@ -101,17 +102,15 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
     });
   }
 
-  async getTopInfluencer(dto: InfluencerFilterDTO): Promise<any[]> {
-    const built = await this.queryBuilder.buildQuery(dto, dto.email);
-    const advanceStages: any[] = built.advanceSearchFields
-      ? [built.advanceSearchFields]
-      : [];
-
-    const pipeline: any[] = [
+  /**
+   * Builds the top-influencer aggregation pipeline for a given match and advance stages.
+   * Used for both current and compare period.
+   */
+  private buildTopInfluencerPipeline(match: any, advanceStages: any[]): any[] {
+    return [
       ...advanceStages,
-      { $match: built.match },
+      { $match: match },
       {
-        // Step 1: project author-level fields (mirror legacy JS getTopInfluencer)
         $project: {
           _id: {
             $ifNull: [
@@ -193,14 +192,8 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
           engagement: { $ifNull: ['$totalEngagement', 0] },
         },
       },
+      { $match: { _id: { $ne: '' } } },
       {
-        // filter out empty author id
-        $match: {
-          _id: { $ne: '' },
-        },
-      },
-      {
-        // group by author id to aggregate posts and engagement per author
         $group: {
           _id: '$_id',
           channel: { $first: '$channel' },
@@ -213,14 +206,59 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
           domain: { $first: '$domain' },
         },
       },
-      {
-        // filter out null names
-        $match: {
-          name: { $ne: null },
-        },
-      },
+      { $match: { name: { $ne: null } } },
     ];
+  }
 
-    return this.findAggregate(pipeline, { hint: built.hint });
+  /**
+   * Returns current-period top influencers and, when compareEnabled, the previous-period
+   * data so the service can compute follower (and optional engagement/post) percent and change.
+   */
+  async getTopInfluencer(
+    dto: InfluencerFilterDTO,
+  ): Promise<{ current: any[]; compare: any[] | null }> {
+    const built = await this.queryBuilder.buildQuery(dto, dto.email);
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
+    const pipelineCurrent = this.buildTopInfluencerPipeline(
+      built.match,
+      advanceStages,
+    );
+
+    if (!dto.compareEnabled) {
+      const current = await this.findAggregate(pipelineCurrent, {
+        hint: built.hint,
+      });
+      return { current, compare: null };
+    }
+
+    const { start, end } = buildComparePeriod(
+      dto.startDate!,
+      dto.endDate!,
+    );
+    const compareDto = {
+      ...dto,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+    const compareBuilt = await this.queryBuilder.buildQuery(
+      compareDto as InfluencerFilterDTO,
+      dto.email,
+    );
+    const advanceStagesCompare: any[] = compareBuilt.advanceSearchFields
+      ? [compareBuilt.advanceSearchFields]
+      : [];
+    const pipelineCompare = this.buildTopInfluencerPipeline(
+      compareBuilt.match,
+      advanceStagesCompare,
+    );
+
+    const [current, compare] = await Promise.all([
+      this.findAggregate(pipelineCurrent, { hint: built.hint }),
+      this.findAggregate(pipelineCompare, { hint: compareBuilt.hint }),
+    ]);
+
+    return { current, compare };
   }
 }

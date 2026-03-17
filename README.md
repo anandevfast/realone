@@ -317,6 +317,7 @@ npm run lint
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | [INFISICAL.md](./docs/INFISICAL.md)                                                                 | Setting up Infisical for secrets management |
 | [REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md](./docs/REAL-LISTENING-SOCIAL-QUERY-BUILDER-TESTS.md) | Comprehensive test coverage guide           |
+| [REAL-LISTENING-INFLUENCER-TESTS.md](./docs/REAL-LISTENING-INFLUENCER-TESTS.md)                     | Influencer test coverage guide           |
 
 
 ---
