@@ -1,6 +1,6 @@
 import { IsDefined, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import {  FilterRequiredDTO } from 'src/modules/real-listening/domain/filter-query.dto';
+import { FilterRequiredDTO } from 'src/modules/real-listening/domain/filter-query.dto';
 
 export class MessageFilterDTO extends FilterRequiredDTO {
   @IsDefined()
@@ -15,5 +15,3 @@ export class MessageFilterDTO extends FilterRequiredDTO {
   @Type(() => Number)
   pagePer?: number = 100;
 }
-
-

@@ -11,9 +11,9 @@ export class TrendService {
   async query(dto: TrendFilterDTO) {
     try {
       if (dto.chartName) {
-        return this.processChart(dto.chartName, dto);
+        return await this.processChart(dto.chartName, dto);
       }
-      return this.processAllCharts(dto);
+      return await this.processAllCharts(dto);
     } catch (error: any) {
       throw new BadRequestException([error?.message ?? String(error)]);
     }
@@ -28,6 +28,8 @@ export class TrendService {
         return this.getShareOfSpeakerType(dto);
       case 'shareIntent':
         return this.getShareOfIntent(dto);
+      case 'top100domain':
+        return this.trendRepository.getTop100Domain(dto);
       case 'hostagetop100':
         return this.trendRepository
           .getTop100Hashtags(dto)

@@ -173,10 +173,7 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
                             $ifNull: [
                               '$content.followers',
                               {
-                                $ifNull: [
-                                  '$content.user.edge_followed_by',
-                                  0,
-                                ],
+                                $ifNull: ['$content.user.edge_followed_by', 0],
                               },
                             ],
                           },
@@ -233,10 +230,7 @@ export class InfluencerRepository extends BaseRepository<SocialMessageDocument> 
       return { current, compare: null };
     }
 
-    const { start, end } = buildComparePeriod(
-      dto.startDate!,
-      dto.endDate!,
-    );
+    const { start, end } = buildComparePeriod(dto.startDate!, dto.endDate!);
     const compareDto = {
       ...dto,
       startDate: start.toISOString(),

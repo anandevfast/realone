@@ -573,5 +573,4 @@ describe('SocialQueryBuilderService – buildQuery (FilterQueryDTO coverage)', (
     expect(result.match.advanceSearchWord).toBeDefined();
     expect(result.match.advanceSearchWord.$regex).toBeDefined();
   });
-
 });

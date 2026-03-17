@@ -62,7 +62,8 @@ export class InfluencerService {
           row.previousFollower = previousFollower;
 
           if (previousFollower > 0) {
-            const diff = (currentFollower - previousFollower) / previousFollower;
+            const diff =
+              (currentFollower - previousFollower) / previousFollower;
             row.percentFollower = _.round(Math.abs(diff) * 100, 2);
             row.changeFollower =
               currentFollower > previousFollower
@@ -72,8 +73,7 @@ export class InfluencerService {
                   : 'nothing';
           } else {
             row.percentFollower = currentFollower > 0 ? 100 : 0;
-            row.changeFollower =
-              currentFollower > 0 ? 'up' : 'nothing';
+            row.changeFollower = currentFollower > 0 ? 'up' : 'nothing';
           }
         }
         return row;

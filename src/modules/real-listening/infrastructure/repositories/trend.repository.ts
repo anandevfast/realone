@@ -103,6 +103,46 @@ export class TrendRepository extends BaseRepository<SocialMessageDocument> {
     return this.findAggregate(pipeline, { hint: built.hint });
   }
 
+  async getTop100Domain(dto: TrendFilterDTO): Promise<any[]> {
+    const built = await this.queryBuilder.buildQuery(dto, dto.email);
+    const advanceStages: any[] = built.advanceSearchFields
+      ? [built.advanceSearchFields]
+      : [];
+    const metricExpr = buildMetricExpression(dto.metric);
+
+    const pipeline: any[] = [
+      ...advanceStages,
+      { $match: built.match },
+      {
+        $project: {
+          domain: '$domain',
+          channel: { $arrayElemAt: [{ $split: ['$channel', '-'] }, 0] },
+          totalEngagement: '$totalEngagement',
+          totalView: '$totalView',
+        },
+      },
+      {
+        $group: {
+          _id: '$domain',
+          count: { $sum: metricExpr },
+          channel: { $first: '$channel' },
+        },
+      },
+      { $sort: { count: -1 } },
+      {
+        $project: {
+          _id: 0,
+          name: '$_id',
+          value: '$count',
+          channel: '$channel',
+        },
+      },
+      { $limit: 100 },
+    ];
+
+    return this.findAggregate(pipeline, { hint: built.hint });
+  }
+
   async getTop100Hashtags(dto: TrendFilterDTO): Promise<any[]> {
     const built = await this.queryBuilder.buildQuery(dto, dto.email);
     const advanceStages: any[] = built.advanceSearchFields

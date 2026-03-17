@@ -68,12 +68,8 @@ describe('InfluencerService – buildTopInfluencer summary', () => {
     expect(summary.uniqueAuthor).toBe(3);
     expect(summary.uniqueSite).toBe(2);
     const totalPost = 2 + 3 + 5;
-    expect(summary.averageMentionAuthor).toBe(
-      _.round(totalPost / 3, 2),
-    );
-    expect(summary.averageMentionSite).toBe(
-      _.round(totalPost / 2, 2),
-    );
+    expect(summary.averageMentionAuthor).toBe(_.round(totalPost / 3, 2));
+    expect(summary.averageMentionSite).toBe(_.round(totalPost / 2, 2));
     expect(summary.values).toHaveLength(3);
     // top value should be author with highest engagement/follower/post
     expect(summary.values[0]._id).toBe('author-1');
@@ -213,5 +209,4 @@ describe('InfluencerService – query()', () => {
       svc.query(BASE_DTO as InfluencerFilterDTO),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
-}
-)
+});

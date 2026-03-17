@@ -144,7 +144,6 @@ export class AdvanceSearchDTO {
   views?: RangeConditionDTO;
 }
 
-
 export class FilterQueryDTO {
   @IsDateString()
   @IsNotEmpty()
@@ -249,13 +248,16 @@ export class FilterQueryDTO {
   advanceSearch?: AdvanceSearchDTO;
 }
 
-
-
 @IsStartBeforeEnd('startDate', 'endDate', {
   message: 'startDate must be before or equal to endDate',
 })
 export class FilterRequiredDTO extends PartialType(
-  OmitType(FilterQueryDTO, ['startDate', 'endDate','condition','email'] as const),
+  OmitType(FilterQueryDTO, [
+    'startDate',
+    'endDate',
+    'condition',
+    'email',
+  ] as const),
 ) {
   @IsNotEmpty()
   @IsDateString()

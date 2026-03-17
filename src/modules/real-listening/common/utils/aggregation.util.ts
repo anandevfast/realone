@@ -47,7 +47,12 @@ export const PIC_PROFILE_COND = {
 
 export const SUB_URL_COND = {
   $cond: {
-    if: { $or: [{ $regexMatch: { input: '$channel', regex: 'website*' } }, { $regexMatch: { input: '$channel', regex: 'webboard*' } }] },
+    if: {
+      $or: [
+        { $regexMatch: { input: '$channel', regex: 'website*' } },
+        { $regexMatch: { input: '$channel', regex: 'webboard*' } },
+      ],
+    },
     then: '$domain',
     else: {
       $ifNull: [
@@ -93,17 +98,26 @@ export const SUB_URL_COND = {
                 {
                   $ifNull: [
                     {
-                      $concat: ['https://www.youtube.com/channel/', '$content.snippet.channelId'],
+                      $concat: [
+                        'https://www.youtube.com/channel/',
+                        '$content.snippet.channelId',
+                      ],
                     },
                     {
                       $ifNull: [
                         {
-                          $concat: ['https://www.instagram.com/', '$content.author'],
+                          $concat: [
+                            'https://www.instagram.com/',
+                            '$content.author',
+                          ],
                         },
                         {
                           $ifNull: [
                             {
-                              $concat: ['https://www.tiktok.com/', '$content.pageName'],
+                              $concat: [
+                                'https://www.tiktok.com/',
+                                '$content.pageName',
+                              ],
                             },
                             '$domain',
                           ],
@@ -119,7 +133,7 @@ export const SUB_URL_COND = {
       ],
     },
   },
-}
+};
 
 export const CHANNEL_NORMALIZE_EXPR = {
   $cond: {
@@ -138,6 +152,13 @@ export const CHANNEL_NORMALIZE_EXPR = {
 const METRIC_EXPRESSIONS: Record<string, any> = {
   engagement: { $ifNull: ['$totalEngagement', 0] },
   engagement_view: {
+    $add: [
+      { $ifNull: ['$totalEngagement', 0] },
+      { $ifNull: ['$totalView', 0] },
+    ],
+  },
+  // legacy alias (some endpoints used `engagement_views`)
+  engagement_views: {
     $add: [
       { $ifNull: ['$totalEngagement', 0] },
       { $ifNull: ['$totalView', 0] },

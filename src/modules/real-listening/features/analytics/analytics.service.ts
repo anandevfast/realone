@@ -28,8 +28,16 @@ import {
 export class AnalyticsService {
   constructor(private readonly analyticsRepository: AnalyticsRepository) {}
 
-  private static readonly changeConvert = (v: number): 'up' | 'down' | 'nothing' =>
-    Number.isFinite(v) ? (v > 0 ? 'up' : v < 0 ? 'down' : 'nothing') : 'nothing';
+  private static readonly changeConvert = (
+    v: number,
+  ): 'up' | 'down' | 'nothing' =>
+    Number.isFinite(v)
+      ? v > 0
+        ? 'up'
+        : v < 0
+          ? 'down'
+          : 'nothing'
+      : 'nothing';
 
   /**
    * Group summaryChannel items into { online, offline }.
@@ -55,9 +63,7 @@ export class AnalyticsService {
         };
       }
 
-      const prevItem = comparePrevItems.find(
-        (p) => p.channel === item.channel,
-      );
+      const prevItem = comparePrevItems.find((p) => p.channel === item.channel);
       const previous = prevItem?.totalMessage ?? 0;
       const diff = current - previous;
       return {
@@ -135,12 +141,17 @@ export class AnalyticsService {
    * Replace flat summaryChannel array with grouped { online, offline } structure.
    * Merges compare period data when available.
    */
-  private buildSummaryChannel(currentCharts: any, compareCharts: any | null): any {
+  private buildSummaryChannel(
+    currentCharts: any,
+    compareCharts: any | null,
+  ): any {
     if (!Array.isArray(currentCharts?.summaryChannel)) {
       return { online: [], offline: [] };
     }
 
-    const compareItems: any[] | null = Array.isArray(compareCharts?.summaryChannel)
+    const compareItems: any[] | null = Array.isArray(
+      compareCharts?.summaryChannel,
+    )
       ? compareCharts.summaryChannel
       : null;
 
@@ -149,7 +160,6 @@ export class AnalyticsService {
       compareItems,
     );
   }
-
 
   async query(dto: AnalyticsFilterDTO) {
     try {
@@ -170,7 +180,10 @@ export class AnalyticsService {
           : this.processAllCharts(compareResult, dto)
         : null;
 
-      const summaryChannel = this.buildSummaryChannel(currentCharts, compareCharts);
+      const summaryChannel = this.buildSummaryChannel(
+        currentCharts,
+        compareCharts,
+      );
 
       const shareOfKeywordTopic = this.wrapWithCompare(
         currentCharts.shareOfKeywordTopic ?? [],

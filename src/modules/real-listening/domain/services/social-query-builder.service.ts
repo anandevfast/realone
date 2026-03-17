@@ -179,8 +179,12 @@ export class SocialQueryBuilderService {
     }
 
     if (input.monitor && Object.keys(input.monitor).length) {
-      const condition = (input.condition as unknown as string) || ConditionTemplate.OR;
-      const monitorOrList = buildMonitorOr(input.monitor as Record<string, string[]>, '$in');
+      const condition =
+        (input.condition as unknown as string) || ConditionTemplate.OR;
+      const monitorOrList = buildMonitorOr(
+        input.monitor as Record<string, string[]>,
+        '$in',
+      );
 
       if (monitorOrList.length) {
         const keywordPart = keywordClause ? { keywords: keywordClause } : null;
@@ -208,7 +212,8 @@ export class SocialQueryBuilderService {
      * KEYWORD ONLY (no monitor)
      * =============================== */
     if (_.isEmpty(input.monitor) && keywordClause) {
-      const condition = (input.condition as unknown as string) || ConditionTemplate.OR;
+      const condition =
+        (input.condition as unknown as string) || ConditionTemplate.OR;
       if (condition === ConditionTemplate.AND) {
         result.match.$and = [
           ...(result.match.$and || []),
@@ -395,7 +400,7 @@ export class SocialQueryBuilderService {
      * SEARCH (followers, domain, text)
      * =============================== */
     if (Array.isArray((input as any).search) && (input as any).search.length) {
-      let searchArr: string[] = [...(input as any).search];
+      const searchArr: string[] = [...(input as any).search];
       const searchAndConditions: any[] = [];
 
       // Followers
@@ -597,7 +602,7 @@ function genAdvanceSearchMatch(search: any) {
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  let andList: any[] = [];
+  const andList: any[] = [];
   const advanceSearchFields: any = { $addFields: {} };
   let advanceSearchWord: any = {};
   let advanceSearchAuthor: any = {};

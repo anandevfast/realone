@@ -18,8 +18,16 @@ import { Sentiment } from '../../domain/social-enum';
 export class SentimentService {
   constructor(private readonly sentimentRepository: SentimentRepository) {}
 
-  private static readonly changeConvert = (v: number): 'up' | 'down' | 'nothing' =>
-    Number.isFinite(v) ? (v > 0 ? 'up' : v < 0 ? 'down' : 'nothing') : 'nothing';
+  private static readonly changeConvert = (
+    v: number,
+  ): 'up' | 'down' | 'nothing' =>
+    Number.isFinite(v)
+      ? v > 0
+        ? 'up'
+        : v < 0
+          ? 'down'
+          : 'nothing'
+      : 'nothing';
 
   /**
    * Wrap a flat values array (items with `y` key) with compare stats.
@@ -186,7 +194,11 @@ export function sentShareOfSentimentChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any[] {
-  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+  const ALL_SENTIMENTS = [
+    Sentiment.POSITIVE,
+    Sentiment.NEUTRAL,
+    Sentiment.NEGATIVE,
+  ];
   const data = flattenSeriesData(queryResults);
 
   const raw = ALL_SENTIMENTS.map((sentiment) => {
@@ -210,7 +222,11 @@ export function sentByKeywordTopicsChart(
   dto: SentimentFilterDTO,
   keywordNameMaps: any[],
 ): any {
-  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+  const ALL_SENTIMENTS = [
+    Sentiment.POSITIVE,
+    Sentiment.NEUTRAL,
+    Sentiment.NEGATIVE,
+  ];
   const data = flattenSeriesData(queryResults);
   let keywords = getKeywordsFromData(data, dto.keywords);
   keywords = keywords.filter((k) => k !== 'Monitor');
@@ -316,7 +332,11 @@ export function sentByChannelChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+  const ALL_SENTIMENTS = [
+    Sentiment.POSITIVE,
+    Sentiment.NEUTRAL,
+    Sentiment.NEGATIVE,
+  ];
   const data = flattenSeriesData(queryResults);
   const channels = getChannelsFromData(data, dto.channel);
 
@@ -337,7 +357,11 @@ export function sentByCategoryChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+  const ALL_SENTIMENTS = [
+    Sentiment.POSITIVE,
+    Sentiment.NEUTRAL,
+    Sentiment.NEGATIVE,
+  ];
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
   const categories = [
@@ -361,7 +385,11 @@ export function sentByTagChart(
   queryResults: any[],
   dto: SentimentFilterDTO,
 ): any {
-  const ALL_SENTIMENTS = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+  const ALL_SENTIMENTS = [
+    Sentiment.POSITIVE,
+    Sentiment.NEUTRAL,
+    Sentiment.NEGATIVE,
+  ];
   const data = flattenSeriesData(queryResults);
   const tags = getTagsFromData(data, dto.tags as string[] | undefined);
 
